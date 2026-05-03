@@ -63,9 +63,8 @@ async function generarMensajeWhatsApp(
 
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
     if (esCrucero) {
-      msg += `Le escribimos de *Inversiones Castaño* con una *oportunidad especial* para usted. 🚢✨\n\n`
-      msg += `🎁 *¡Participe por un CRUCERO!* Para entrar al sorteo del crucero, cada boleta debe tener un abono mínimo de *$90.000*.\n\n`
-      msg += `Estas son las boletas suyas que aún no califican (abono menor a $90.000):\n\n`
+      msg += `Le recordamos que para participar por el *CRUCERO* cada boleta debe tener mínimo *$90.000* abonados.\n\n`
+      msg += `*Sus boletas por ajustar:*\n`
     } else {
       msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
       msg += `🎯 *¡No se quede por fuera del  anticipado este sabado 2 de Mayo por 10 millones de pesos !*\n`
@@ -82,29 +81,34 @@ async function generarMensajeWhatsApp(
       msg += `🎟️ *${rifa.rifa_nombre}*\n`
       boletasPendientes.forEach(b => {
         const num = `#${String(b.numero).padStart(4, '0')}`
-        if (b.estado === 'RESERVADA') {
+        if (esCrucero && b.estado === 'RESERVADA') {
+          msg += `  ${getEstadoEmoji(b.estado)} *${num}* — Sin abono (faltan ${formatCurrency(90000)})\n`
+        } else if (b.estado === 'RESERVADA') {
           msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Reservada (pendiente: ${formatCurrency(Number(b.saldo))})\n`
         } else {
           const faltaCrucero = Math.max(90000 - Number(b.abono), 0)
-          const detalleExtra = esCrucero && faltaCrucero > 0
-            ? ` — 🚢 Falta ${formatCurrency(faltaCrucero)} para entrar al crucero`
-            : ''
-          msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Abonado: ${formatCurrency(Number(b.abono))} de ${formatCurrency(Number(b.precio_unitario))} (falta: ${formatCurrency(Number(b.saldo))})${detalleExtra}\n`
+          if (esCrucero) {
+            msg += `  ${getEstadoEmoji(b.estado)} *${num}* — Abonado: ${formatCurrency(Number(b.abono))} (faltan ${formatCurrency(faltaCrucero)} para $90.000)\n`
+          } else {
+            msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Abonado: ${formatCurrency(Number(b.abono))} de ${formatCurrency(Number(b.precio_unitario))} (falta: ${formatCurrency(Number(b.saldo))})\n`
+          }
         }
       })
       msg += `\n`
     })
 
     const deuda = Number(resumen.total_deuda) || 0
-    if (deuda > 0) {
+    if (!esCrucero && deuda > 0) {
       msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
     }
 
     msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-    msg += esCrucero
-      ? `¡Complete su abono y únase al sueño del crucero! 🚢🌊✨`
-      : `¡Gracias por su confianza! 🙏✨`
+    if (esCrucero) {
+      msg += `Gracias por su atención. 🙌`
+    } else {
+      msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
+      msg += `¡Gracias por su confianza! 🙏✨`
+    }
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   } catch {
@@ -112,17 +116,18 @@ async function generarMensajeWhatsApp(
     const deuda = cliente.deuda_total || 0
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
     if (esCrucero) {
-      msg += `🚢 *¡Oportunidad especial!* Para participar por el *CRUCERO* cada boleta debe estar abonada con al menos *$90.000*.\n\n`
-      msg += `Tiene boletas que aún no califican. Compáltelas y asegúrese su cupo. 🌊✨\n\n`
+      msg += `Recuerde que para participar por el *CRUCERO* cada boleta debe estar abonada con mínimo *$90.000*.\n\n`
     } else {
       msg += `Le recordamos que tiene boletas pendientes por pagar.\n\n`
     }
-    if (deuda > 0) msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
+    if (!esCrucero && deuda > 0) msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
     msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-    msg += esCrucero
-      ? `¡Complete su abono y únase al sueño del crucero! 🚢🌊✨`
-      : `¡Complete su pago para participar en los sorteos anticipados! 🙏✨`
+    if (esCrucero) {
+      msg += `Gracias por su atención. 🙌`
+    } else {
+      msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
+      msg += `¡Complete su pago para participar en los sorteos anticipados! 🙏✨`
+    }
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }
 }
