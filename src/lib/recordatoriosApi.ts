@@ -74,7 +74,7 @@ class RecordatoriosApiService {
     page: number = 1,
     limit: number = 20,
     search: string = '',
-    filtro: 'todos' | 'reservadas' | 'abonadas' | 'crucero' = 'todos',
+    filtro: 'todos' | 'reservadas' | 'abonadas' = 'todos',
     notificado: 'todos' | 'si' | 'no' = 'todos',
     vendedor: string = ''
   ): Promise<RecordatorioListResponse> {

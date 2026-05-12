@@ -45,89 +45,63 @@ function formatDateShort(dateString: string) {
 }
 
 /**
- * Genera el URL de WhatsApp con un mensaje bonito personalizado
+ * Genera = URL de WhatsApp con un mensaje bonito personalizado
  */
 async function generarMensajeWhatsApp(
   cliente: ClienteRecordatorio,
-  tipo: 'todos' | 'reservadas' | 'abonadas' | 'crucero' = 'todos'
+  tipo: 'todos' | 'reservadas' | 'abonadas' = 'todos'
 ): Promise<string | null> {
   const telCompleto = normalizarTelefono(cliente.telefono)
   if (!telCompleto || telCompleto.length < 7) return null
 
   const nombre = cliente.nombre || 'Cliente'
-  const esCrucero = tipo === 'crucero'
 
   try {
     const response = await clienteApi.getClienteDetalle(cliente.id)
     const { rifas, resumen } = response.data
 
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
-    if (esCrucero) {
-      msg += `Le recordamos que para participar por el *CRUCERO* cada boleta debe tener mínimo *$90.000* abonados.\n\n`
-      msg += `*Sus boletas por ajustar:*\n`
-    } else {
-      msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
-      msg += `🎯 *¡No se quede por fuera del  anticipado este sabado 2 de Mayo por 10 millones de pesos !*\n`
-      msg += `Para participar en este anticipado cada boleta debe de estar cancelada por lo menos con $60.000 pesos.\n\n`
-    }
+    msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
+    msg += `🎯 *¡No se quede por fuera del  anticipado este sabado 16 de Mayo por 2 millones de pesos !*\n`
+    msg += `Para participar en este anticipado cada boleta debe de estar cancelada por lo menos con $90.000 pesos y para el premio mayor este 20 de junio debe estar cancelada completamente.\n\n`
+    
 
     // Detalle por rifa
     rifas.forEach((rifa: RifaConBoletas) => {
-      const boletasPendientes = esCrucero
-        ? rifa.boletas.filter(b => (b.estado === 'RESERVADA' || b.estado === 'ABONADA') && Number(b.abono) < 90000)
-        : rifa.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
+      const boletasPendientes = rifa.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
       if (boletasPendientes.length === 0) return
 
       msg += `🎟️ *${rifa.rifa_nombre}*\n`
       boletasPendientes.forEach(b => {
         const num = `#${String(b.numero).padStart(4, '0')}`
-        if (esCrucero && b.estado === 'RESERVADA') {
-          msg += `  ${getEstadoEmoji(b.estado)} *${num}* — Sin abono (faltan ${formatCurrency(90000)})\n`
-        } else if (b.estado === 'RESERVADA') {
+        if (b.estado === 'RESERVADA') {
           msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Reservada (pendiente: ${formatCurrency(Number(b.saldo))})\n`
         } else {
-          const faltaCrucero = Math.max(90000 - Number(b.abono), 0)
-          if (esCrucero) {
-            msg += `  ${getEstadoEmoji(b.estado)} *${num}* — Abonado: ${formatCurrency(Number(b.abono))} (faltan ${formatCurrency(faltaCrucero)} para $90.000)\n`
-          } else {
-            msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Abonado: ${formatCurrency(Number(b.abono))} de ${formatCurrency(Number(b.precio_unitario))} (falta: ${formatCurrency(Number(b.saldo))})\n`
-          }
+          msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Abonado: ${formatCurrency(Number(b.abono))} de ${formatCurrency(Number(b.precio_unitario))} (falta: ${formatCurrency(Number(b.saldo))})\n`
         }
       })
       msg += `\n`
     })
 
     const deuda = Number(resumen.total_deuda) || 0
-    if (!esCrucero && deuda > 0) {
+    if (deuda > 0) {
       msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
     }
 
     msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    if (esCrucero) {
-      msg += `Gracias por su atención. 🙌`
-    } else {
-      msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-      msg += `¡Gracias por su confianza! 🙏✨`
-    }
+    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
+    msg += `¡Gracias por su confianza! 🙏✨`
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   } catch {
     // Fallback si falla la API
     const deuda = cliente.deuda_total || 0
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
-    if (esCrucero) {
-      msg += `Recuerde que para participar por el *CRUCERO* cada boleta debe estar abonada con mínimo *$90.000*.\n\n`
-    } else {
-      msg += `Le recordamos que tiene boletas pendientes por pagar.\n\n`
-    }
-    if (!esCrucero && deuda > 0) msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
+    msg += `Le recordamos que tiene boletas pendientes por pagar.\n\n`
+    if (deuda > 0) msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
     msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    if (esCrucero) {
-      msg += `Gracias por su atención. 🙌`
-    } else {
-      msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-      msg += `¡Complete su pago para participar en los sorteos anticipados! 🙏✨`
-    }
+    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
+    msg += `¡Complete su pago para participar en los sorteos anticipados! 🙏✨`
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }
 }
@@ -153,7 +127,7 @@ export default function RecordatoriosList() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 })
   const [searchTerm, setSearchTerm] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'reservadas' | 'abonadas' | 'crucero'>('todos')
+  const [filtroActivo, setFiltroActivo] = useState<'todos' | 'reservadas' | 'abonadas'>('todos')
   const [filtroNotificado, setFiltroNotificado] = useState<'todos' | 'si' | 'no'>('todos')
   const [filtroVendedor, setFiltroVendedor] = useState<string>(loggedUser.vendedorId)
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
@@ -236,7 +210,6 @@ export default function RecordatoriosList() {
     { key: 'todos' as const, label: 'Todos Pendientes', count: resumen?.total_pendientes ?? 0, color: 'bg-slate-900', textColor: 'text-white' },
     { key: 'reservadas' as const, label: 'Con Reservadas', count: resumen?.con_reservadas ?? 0, color: 'bg-yellow-500', textColor: 'text-white' },
     { key: 'abonadas' as const, label: 'Con Abonadas', count: resumen?.con_abonadas ?? 0, color: 'bg-blue-600', textColor: 'text-white' },
-    { key: 'crucero' as const, label: '🚢 Crucero (< $90k)', count: resumen?.con_crucero ?? 0, color: 'bg-cyan-600', textColor: 'text-white' },
   ]
 
   const notifFilters = [
@@ -288,7 +261,7 @@ export default function RecordatoriosList() {
       )}
 
       {/* Filter Cards - Tipo de boleta */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {filters.map((f) => (
           <button
             key={f.key}
