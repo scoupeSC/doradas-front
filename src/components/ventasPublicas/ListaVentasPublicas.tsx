@@ -129,7 +129,7 @@ export default function ListaVentasPublicas({
 
     let mensaje = ''
 
-    const infoAnticipados = `\n\n🏆 *PARA PARTICIPAR EN LOS PREMIOS:*\n✅ *Anticipados de 2 millones:* cancelar el *50%* de la boleta a partir del 7 de marzo\n🚢 *Crucero (9 de mayo):* cancelar el *75%* de la boleta\n🎁 *Premio mayor (20 de junio):* cancelar el *100%* de la boleta`
+    const infoAnticipados = `\n\n🏆 *PARA PARTICIPAR EN LOS PREMIOS:*\n✅ *Anticipados:* mínimo $90.000 abonados todos los sábados por $2.000.000 acumulables\n🎁 *Premio mayor (20 de junio):* boleta pagada al 100%`
 
     if (venta.estado_venta === 'SIN_REVISAR') {
       mensaje = `Hola ${venta.cliente_nombre}, recibimos tu reserva en la rifa *${venta.rifa_nombre}* para las boletas *${numeros}*, por un total de *${formatoMoneda(venta.monto_total)}*.${infoAnticipados}${mediosDePago}${linkBoletas}\n\nRecuerda enviar el comprobante de pago por este medio. ¡Gracias! 🙏`
