@@ -63,7 +63,7 @@ async function generarMensajeWhatsApp(
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
     msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
     msg += `🎯 *¡No se quede por fuera del  anticipado este sabado 23 de Mayo por 2 millones de pesos !*\n`
-    msg += `Para participar en este anticipado cada boleta debe de estar cancelada por lo menos con $90.000 pesos y para el premio mayor este 20 de junio debe estar cancelada completamente.\n\n`
+    msg += `Para participar en este anticipado cada boleta debe de estar cancelada por lo menos con $60.000 pesos y para el premio mayor este 20 de junio debe estar cancelada completamente.\n\n`
     
 
     // Detalle por rifa
