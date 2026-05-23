@@ -76,7 +76,7 @@ class SeguimientoClientesApiService {
     if (params.abonoMin !== undefined)  q.set('abonoMin',     String(params.abonoMin))
     if (params.abonoMax !== undefined)  q.set('abonoMax',     String(params.abonoMax))
 
-    const res = await fetch(`${API_BASE_URL}/reportes/seguimiento-clientes?${q}`, {
+    const res = await fetch(`${API_BASE_URL}/api/reportes/seguimiento-clientes?${q}`, {
       headers: this.getAuthHeaders(),
     })
     return this.handleResponse<SeguimientoListResponse>(res)
