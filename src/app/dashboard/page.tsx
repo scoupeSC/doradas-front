@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const canUseReportes = normalizedRole === 'SUPER_ADMIN'
   const canUseMisReportes = ['SUPER_ADMIN', 'ADMIN', 'VENDEDOR'].includes(normalizedRole || '')
   const canUseRecordatorios = ['SUPER_ADMIN', 'ADMIN', 'VENDEDOR'].includes(normalizedRole || '')
+  const canUseSeguimiento = ['SUPER_ADMIN', 'ADMIN'].includes(normalizedRole || '')
   const canUseVentasPublicas = ['SUPER_ADMIN', 'ADMIN'].includes(normalizedRole || '')
   const canUseVendedoresStats = normalizedRole === 'SUPER_ADMIN'
 
@@ -290,9 +291,37 @@ export default function DashboardPage() {
               </a>
             )}
 
-            {/* Vendedores (solo SUPER_ADMIN) */}
-            {canUseVendedoresStats && (
+            {/* Seguimiento de Clientes (ADMIN + SUPER_ADMIN) */}
+            {canUseSeguimiento && (
               <a
+                href="/seguimiento-clientes"
+                className="group relative bg-gradient-to-br from-teal-500 to-teal-700 p-6 rounded-2xl text-white overflow-hidden card-hover shadow-lg shadow-teal-600/15"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-[11px] font-semibold border border-white/10">
+                      Admin
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-1">Seguimiento Clientes</h4>
+                  <p className="text-teal-100 text-sm leading-relaxed">Boletas, abonos, saldos y recordatorios por cliente</p>
+                  <div className="mt-4 flex items-center text-teal-200 text-xs font-medium group-hover:text-white transition-colors">
+                    Ir al módulo
+                    <svg className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </div>
+              </a>
+            )}
+
+            {/* Vendedores (solo SUPER_ADMIN) */}
+            {canUseVendedoresStats && (              <a
                 href="/vendedores"
                 className="group relative bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl text-white overflow-hidden card-hover shadow-lg shadow-indigo-600/15"
               >
