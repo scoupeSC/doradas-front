@@ -88,8 +88,15 @@ function FilaBoleta({ b }: { b: BoletaSeguimiento }) {
           ? <span className="text-rose-600">{COP(Number(b.saldo_pendiente))}</span>
           : <span className="text-emerald-600">—</span>}
       </td>
+      <td className="py-2 px-3 text-xs whitespace-nowrap">
+        {b.es_venta_online
+          ? <span className="inline-flex items-center gap-1 text-violet-600 font-medium">🌐 Online</span>
+          : b.vendedor_nombre
+            ? <span className="text-slate-700">{b.vendedor_nombre}</span>
+            : <span className="text-slate-400">—</span>}
+      </td>
       <td className="py-2 px-3 text-xs text-slate-400 whitespace-nowrap">
-        {fmtDate(b.boleta_created_at)}
+        {fmtDate(b.fecha_venta)}
       </td>
     </tr>
   )
@@ -330,7 +337,8 @@ function TarjetaCliente({ cliente, onContactoRegistrado }: {
                 <th className="py-2 px-3 text-right">Precio</th>
                 <th className="py-2 px-3 text-left">Abonado</th>
                 <th className="py-2 px-3 text-right">Saldo</th>
-                <th className="py-2 px-3 text-left">Fecha compra</th>
+                <th className="py-2 px-3 text-left">Vendedor</th>
+                <th className="py-2 px-3 text-left">Fecha venta</th>
               </tr>
             </thead>
             <tbody>

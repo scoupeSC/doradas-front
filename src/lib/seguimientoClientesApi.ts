@@ -11,6 +11,8 @@ export interface BoletaSeguimiento {
   saldo_pendiente: number
   boleta_created_at: string
   fecha_venta: string | null
+  es_venta_online: boolean
+  vendedor_nombre: string | null
 }
 
 export interface ClienteSeguimiento {
