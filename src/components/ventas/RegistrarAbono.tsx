@@ -497,9 +497,6 @@ export default function RegistrarAbono({ ventaId, onBack, onAbonoRegistrado }: P
               {venta.vendedor_email && (
                 <p className="text-sm text-amber-700 mt-0.5">{venta.vendedor_email}</p>
               )}
-              <p className="text-sm text-amber-700 mt-2">
-                ℹ️ Solo informativo — cualquier admin o vendedor puede registrar el abono.
-              </p>
             </>
           ) : (
             <p className="text-sm text-blue-800 font-semibold mt-1">
