@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ventasApi } from '@/lib/ventasApi'
 import { BoletaDisponible, BoletaEnCarrito, BoletaBloqueada } from '@/types/ventas'
-import { useRef } from 'react'
 
 
 interface SelectorBoletasProps {
@@ -35,6 +34,15 @@ export default function SelectorBoletas({
   const [boletasPorPagina] = useState(20)
   const [bloqueando, setBloqueando] = useState<Set<string>>(new Set())
   const intervalosRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
+
+  // ── Ruleta ──────────────────────────────────────────────────────────────
+  const [mostrarRuleta, setMostrarRuleta] = useState(false)
+  const [faseRuleta, setFaseRuleta] = useState<'idle' | 'girando' | 'resultado'>('idle')
+  const [boletaRuleta, setBoletaRuleta] = useState<BoletaDisponible | null>(null)
+  const [numeroMostrado, setNumeroMostrado] = useState<number>(0)
+  const [bloqueandoRuleta, setBloqueandoRuleta] = useState(false)
+  const ruletaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ruletaIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
 
   // Cargar boletas disponibles
@@ -183,6 +191,91 @@ if (interval) {
     }
   }
 
+  // ── Lógica de la ruleta ──────────────────────────────────────────────────
+  const boletasParaRuleta = boletasDisponibles.filter(
+    b => !boletasSeleccionadas.some(s => s.id === b.id)
+  )
+
+  const girarRuleta = () => {
+    if (boletasParaRuleta.length === 0) return
+
+    // Limpiar timers previos
+    if (ruletaIntervalRef.current) clearInterval(ruletaIntervalRef.current)
+    if (ruletaTimerRef.current) clearTimeout(ruletaTimerRef.current)
+
+    // Elegir boleta ganadora aleatoriamente
+    const ganadora = boletasParaRuleta[Math.floor(Math.random() * boletasParaRuleta.length)]
+    setBoletaRuleta(ganadora)
+    setFaseRuleta('girando')
+
+    // Animación: ciclar números rápido y luego frenar
+    let velocidad = 40
+    let elapsed = 0
+    const duracionTotal = 2800
+
+    const ciclar = () => {
+      const pool = boletasParaRuleta.length > 1
+        ? boletasParaRuleta.filter(b => b.id !== ganadora.id)
+        : boletasParaRuleta
+      const random = pool[Math.floor(Math.random() * pool.length)]
+      setNumeroMostrado(random.numero)
+
+      elapsed += velocidad
+      // frenar progresivamente
+      if (elapsed > 1200) velocidad = 160
+      else if (elapsed > 800) velocidad = 100
+      else if (elapsed > 500) velocidad = 65
+
+      if (elapsed >= duracionTotal) {
+        // Resultado final
+        if (ruletaIntervalRef.current) clearInterval(ruletaIntervalRef.current)
+        setNumeroMostrado(ganadora.numero)
+        setFaseRuleta('resultado')
+        return
+      }
+
+      if (ruletaIntervalRef.current) clearInterval(ruletaIntervalRef.current)
+      ruletaIntervalRef.current = setInterval(ciclar, velocidad)
+    }
+
+    ruletaIntervalRef.current = setInterval(ciclar, velocidad)
+  }
+
+  const abrirRuleta = () => {
+    setMostrarRuleta(true)
+    setFaseRuleta('idle')
+    setBoletaRuleta(null)
+    setNumeroMostrado(0)
+  }
+
+  const cerrarRuleta = () => {
+    if (ruletaIntervalRef.current) clearInterval(ruletaIntervalRef.current)
+    if (ruletaTimerRef.current) clearTimeout(ruletaTimerRef.current)
+    setMostrarRuleta(false)
+    setFaseRuleta('idle')
+  }
+
+  const seleccionarBoletaRuleta = async () => {
+    if (!boletaRuleta || bloqueandoRuleta) return
+    setBloqueandoRuleta(true)
+    try {
+      await seleccionarBoleta(boletaRuleta)
+      cerrarRuleta()
+    } catch {
+      // silencioso, seleccionarBoleta ya maneja el error
+    } finally {
+      setBloqueandoRuleta(false)
+    }
+  }
+
+  // Limpiar timers de ruleta al desmontar
+  useEffect(() => {
+    return () => {
+      if (ruletaIntervalRef.current) clearInterval(ruletaIntervalRef.current)
+      if (ruletaTimerRef.current) clearTimeout(ruletaTimerRef.current)
+    }
+  }, [])
+
   // Filtrar boletas por búsqueda
   const boletasFiltradas = (boletasDisponibles || []).filter(boleta => {
     if (!busqueda) return true
@@ -267,10 +360,23 @@ useEffect(() => {
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-medium text-slate-900">Seleccionar Boletas Disponibles</h2>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <div className="text-sm text-slate-600">
             <span className="font-medium">{boletasDisponibles?.length || 0}</span> disponibles
           </div>
+          {/* Botón ruleta */}
+          <button
+            onClick={abrirRuleta}
+            disabled={boletasParaRuleta.length === 0 || loading}
+            title="Elegir boleta al azar"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+              bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700
+              text-white shadow-md shadow-violet-500/30 transition-all hover:scale-105
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <span className="text-base">🎰</span>
+            Boleta al Azar
+          </button>
           <button
             onClick={cargarBoletasDisponibles}
             disabled={loading}
@@ -412,6 +518,213 @@ useEffect(() => {
           >
             Siguiente
           </button>
+        </div>
+      )}
+
+      {/* ── Modal Ruleta ── */}
+      {mostrarRuleta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(10,10,30,0.85)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) cerrarRuleta() }}
+        >
+          <div className="relative bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl shadow-2xl border border-indigo-500/30 p-8 w-full max-w-sm text-center overflow-hidden">
+
+            {/* Decoración fondo */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-violet-600/10 blur-2xl" />
+              <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-indigo-600/10 blur-2xl" />
+            </div>
+
+            {/* Botón cerrar */}
+            <button
+              onClick={cerrarRuleta}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm"
+            >
+              ✕
+            </button>
+
+            {/* Título */}
+            <p className="text-violet-300 text-xs font-bold uppercase tracking-widest mb-1">
+              🎰 Boleta al Azar
+            </p>
+            <h3 className="text-white text-xl font-black mb-6">
+              {faseRuleta === 'idle' && '¿Listo para girar?'}
+              {faseRuleta === 'girando' && '¡Girando...!'}
+              {faseRuleta === 'resultado' && '¡Tu número es!'}
+            </h3>
+
+            {/* Display del número */}
+            <div className="relative flex items-center justify-center mb-8">
+              {/* Anillo exterior giratorio */}
+              <div
+                className="absolute w-52 h-52 rounded-full border-4 border-dashed"
+                style={{
+                  borderColor: faseRuleta === 'resultado' ? '#34d399' : '#7c3aed',
+                  animation: faseRuleta === 'girando'
+                    ? 'spin 0.8s linear infinite'
+                    : faseRuleta === 'resultado'
+                    ? 'spin 3s linear infinite'
+                    : 'none',
+                }}
+              />
+              {/* Anillo medio */}
+              <div
+                className="absolute w-44 h-44 rounded-full border-2"
+                style={{
+                  borderColor: faseRuleta === 'resultado' ? '#6ee7b7' : '#a78bfa',
+                  opacity: 0.5,
+                  animation: faseRuleta === 'girando'
+                    ? 'spin 0.5s linear infinite reverse'
+                    : 'none',
+                }}
+              />
+
+              {/* Círculo central */}
+              <div
+                className="relative w-36 h-36 rounded-full flex flex-col items-center justify-center shadow-2xl transition-all duration-300"
+                style={{
+                  background: faseRuleta === 'resultado'
+                    ? 'linear-gradient(135deg, #059669, #065f46)'
+                    : 'linear-gradient(135deg, #4c1d95, #1e1b4b)',
+                  boxShadow: faseRuleta === 'resultado'
+                    ? '0 0 40px rgba(52, 211, 153, 0.6), 0 0 80px rgba(52, 211, 153, 0.2)'
+                    : '0 0 40px rgba(124, 58, 237, 0.5)',
+                  transform: faseRuleta === 'resultado' ? 'scale(1.08)' : 'scale(1)',
+                }}
+              >
+                {faseRuleta === 'idle' ? (
+                  <span className="text-5xl">🎟️</span>
+                ) : (
+                  <>
+                    <span className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">
+                      #{' '}
+                    </span>
+                    <span
+                      className="text-white font-black leading-none"
+                      style={{
+                        fontSize: '2.6rem',
+                        letterSpacing: '-0.02em',
+                        fontVariantNumeric: 'tabular-nums',
+                        filter: faseRuleta === 'girando' ? 'blur(0.5px)' : 'none',
+                        transition: 'filter 0.2s',
+                      }}
+                    >
+                      {String(numeroMostrado).padStart(4, '0')}
+                    </span>
+                    {faseRuleta === 'resultado' && (
+                      <span className="text-emerald-300 text-xs font-bold mt-1">✓ Disponible</span>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Estrellas de celebración */}
+              {faseRuleta === 'resultado' && (
+                <>
+                  {['top-2 left-6', 'top-2 right-6', 'bottom-2 left-6', 'bottom-2 right-6',
+                    'top-1/2 left-0', 'top-1/2 right-0'].map((pos, i) => (
+                    <span
+                      key={i}
+                      className={`absolute ${pos} text-yellow-300`}
+                      style={{
+                        fontSize: i % 2 === 0 ? '1rem' : '0.75rem',
+                        animation: `pulse 0.8s ease-in-out ${i * 0.1}s infinite alternate`,
+                      }}
+                    >
+                      ✦
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Contador de disponibles */}
+            <p className="text-slate-400 text-xs mb-6">
+              {boletasParaRuleta.length} boleta{boletasParaRuleta.length !== 1 ? 's' : ''} disponible{boletasParaRuleta.length !== 1 ? 's' : ''} para sortear
+            </p>
+
+            {/* Botones */}
+            <div className="flex flex-col gap-3">
+              {faseRuleta === 'idle' && (
+                <button
+                  onClick={girarRuleta}
+                  className="w-full py-3.5 rounded-2xl font-black text-white text-lg
+                    bg-gradient-to-r from-violet-600 to-indigo-600
+                    hover:from-violet-500 hover:to-indigo-500
+                    shadow-lg shadow-violet-600/40 transition-all hover:scale-105 active:scale-95"
+                >
+                  🎰 ¡Girar!
+                </button>
+              )}
+
+              {faseRuleta === 'girando' && (
+                <div className="w-full py-3.5 rounded-2xl font-bold text-violet-300 text-base
+                  bg-violet-950/50 border border-violet-500/30 flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Girando...
+                </div>
+              )}
+
+              {faseRuleta === 'resultado' && (
+                <>
+                  <button
+                    onClick={seleccionarBoletaRuleta}
+                    disabled={bloqueandoRuleta}
+                    className="w-full py-3.5 rounded-2xl font-black text-white text-base
+                      bg-gradient-to-r from-emerald-500 to-teal-600
+                      hover:from-emerald-400 hover:to-teal-500
+                      shadow-lg shadow-emerald-500/40 transition-all hover:scale-105 active:scale-95
+                      disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {bloqueandoRuleta ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        Seleccionando...
+                      </span>
+                    ) : (
+                      `🎟️ ¡Quiero el #${String(boletaRuleta?.numero ?? 0).padStart(4, '0')}!`
+                    )}
+                  </button>
+                  <button
+                    onClick={girarRuleta}
+                    disabled={bloqueandoRuleta}
+                    className="w-full py-3 rounded-2xl font-semibold text-violet-300 text-sm
+                      bg-violet-950/50 border border-violet-500/30
+                      hover:bg-violet-900/50 hover:text-violet-200
+                      transition-all disabled:opacity-50"
+                  >
+                    🔄 Girar de nuevo
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Info: pueden seguir girando para más boletas */}
+            {boletasSeleccionadas.length > 0 && (
+              <p className="text-slate-500 text-xs mt-4">
+                Ya tienes {boletasSeleccionadas.length} boleta{boletasSeleccionadas.length !== 1 ? 's' : ''} seleccionada{boletasSeleccionadas.length !== 1 ? 's' : ''} · puedes seguir girando
+              </p>
+            )}
+          </div>
+
+          {/* Keyframes globales inline */}
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              from { opacity: 0.4; transform: scale(0.8); }
+              to   { opacity: 1;   transform: scale(1.2); }
+            }
+          `}</style>
         </div>
       )}
     </div>
