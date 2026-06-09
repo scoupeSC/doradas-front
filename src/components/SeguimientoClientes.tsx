@@ -64,7 +64,7 @@ function generarUrlWhatsAppSeguimiento(cliente: ClienteSeguimiento): string | nu
 
   let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
   msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
-  msg += `🎯 *¡No se quede por fuera del anticipado este sábado por 2 millones de pesos!*\n`
+  msg += `🎯 *¡No se quede por fuera del anticipado este sábado 13 por 4 millones de pesos!*\n`
   msg += `Para participar en el anticipado cada boleta debe estar cancelada por lo menos con $60.000 y para el premio mayor el 20 de junio debe estar cancelada completamente.\n\n`
 
   const pendientes = cliente.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
