@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { normalizarTelefono } from '@/utils/telefono'
+import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
 
 // ─── Datos que necesita el recibo ───────────────────────────────────
 export interface ReciboAbonoData {
@@ -450,7 +451,7 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
           </button>
 
           {/* WhatsApp */}
-          {whatsappLink && (
+          {WHATSAPP_MENSAJE_ACTIVO && whatsappLink && (
             <a
               href={whatsappLink}
               target="_blank"

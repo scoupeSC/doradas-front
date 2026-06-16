@@ -10,6 +10,7 @@ import {
 } from '@/lib/seguimientoClientesApi'
 import { normalizarTelefono } from '@/utils/telefono'
 import { getMediosDePagoTexto } from '@/config/paymentInfo'
+import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
 const COP = (v: number) =>
@@ -262,7 +263,7 @@ function TarjetaCliente({ cliente, onContactoRegistrado }: {
           <p className="font-semibold text-slate-800 text-sm truncate">{cliente.nombre}</p>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-slate-500 text-xs">{cliente.telefono || '—'}</span>
-            {waUrl && (
+            {WHATSAPP_MENSAJE_ACTIVO && waUrl && (
               <a
                 href={waUrl}
                 target="_blank"
@@ -353,6 +354,7 @@ function TarjetaCliente({ cliente, onContactoRegistrado }: {
               </p>
             </div>
           )}
+          {WHATSAPP_MENSAJE_ACTIVO && (
           <button
             onClick={handleNotificarWhatsApp}
             disabled={enviandoWA || !normalizarTelefono(cliente.telefono)}
@@ -372,6 +374,7 @@ function TarjetaCliente({ cliente, onContactoRegistrado }: {
             )}
             {enviandoWA ? 'Enviando…' : 'Notificar WA'}
           </button>
+          )}
         </div>
 
         {/* Recordatorio + contacto */}

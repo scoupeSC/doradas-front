@@ -6,6 +6,7 @@ import { ventasApi } from '@/lib/ventasApi'
 import { BoletaEnCarrito, Cliente } from '@/types/ventas'
 import { normalizarTelefono } from '@/utils/telefono'
 import { getMediosDePagoBloque } from '@/config/paymentInfo'
+import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
 import BoletaTicket from '@/components/BoletaTicket'
 import ResponsiveBoletaWrapper from '@/components/ResponsiveBoletaWrapper'
 
@@ -320,7 +321,7 @@ export default function DialogoReserva({
           )}
 
           {/* Botón de WhatsApp */}
-          {generarLinkWhatsAppReserva() && (
+          {WHATSAPP_MENSAJE_ACTIVO && generarLinkWhatsAppReserva() && (
             <div className="flex justify-center mt-4">
               <a
                 href={generarLinkWhatsAppReserva()!}
