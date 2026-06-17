@@ -28,30 +28,28 @@ export default function ResponsiveBoletaWrapper({ children, id }: { children: Re
     return () => window.removeEventListener('resize', updateScale)
   }, [])
 
-  // El id debe ir en el contenedor interno de tamaño fijo
+  const scaledHeight = 352 * scale
+
   return (
-    <div ref={containerRef} className="w-full overflow-hidden" style={{ height: `${352 * scale}px` }}>
+    <div
+      ref={containerRef}
+      className="w-full relative overflow-hidden"
+      style={{ height: `${scaledHeight}px` }}
+    >
       <div
+        id={id}
         style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: '50%',
+          transform: `translateX(-50%) scale(${scale})`,
+          transformOrigin: 'top center',
+          width: '800px',
+          height: '352px',
+          boxSizing: 'border-box',
         }}
       >
-        <div
-          id={id}
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            width: '800px',
-            height: '352px',
-            boxSizing: 'border-box',
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   )

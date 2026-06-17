@@ -1,8 +1,8 @@
 'use client'
 
 import { useRef } from 'react'
-import { normalizarTelefono } from '@/utils/telefono'
-import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
+import { generarWhatsAppChatLink } from '@/utils/telefono'
+import { WHATSAPP_VENTAS_ACTIVO } from '@/config/features'
 
 // ─── Datos que necesita el recibo ───────────────────────────────────
 export interface ReciboAbonoData {
@@ -68,52 +68,9 @@ const WHATSAPP_SVG = (
   </svg>
 )
 
-// ─── Generador de link WhatsApp ─────────────────────────────────────
+// ─── Generador de link WhatsApp (chat vacío) ─────────────────────────
 function generarWhatsAppLink(data: ReciboAbonoData): string | null {
-  const telCompleto = normalizarTelefono(data.clienteTelefono)
-  if (!telCompleto || telCompleto.length < 7) return null
-
-  const nombre = data.clienteNombre || 'Cliente'
-  const cuentaSaldada = data.saldoPendiente <= 0
-
-  // Detalle por boleta
-  const boletasDetalle = data.boletas
-    .map((b) => {
-      const num = `#${b.numero.toString().padStart(4, '0')}`
-      if (b.estado === 'PAGADA' || (b.totalPagado && b.precioBoleta && b.totalPagado >= b.precioBoleta)) {
-        return `  ${num}: ✅ Pagada`
-      }
-      if (b.totalPagado && b.totalPagado > 0) {
-        return `  ${num}: 💰 Abonada ($${(b.totalPagado || 0).toLocaleString('es-CO')} de $${(b.precioBoleta || 0).toLocaleString('es-CO')})`
-      }
-      return `  ${num}: 🔒 Pendiente`
-    })
-    .join('\n')
-
-  const linkBoletas = `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`
-
-  let msg = ''
-  if (cuentaSaldada) {
-    msg = `Hola ${nombre}, te confirmamos que tu pago de *${formatoMoneda(data.montoRegistrado)}* fue registrado exitosamente. 🎉\n\n`
-    msg += `*Estado de tu cuenta${data.rifaNombre ? ` - ${data.rifaNombre}` : ''}:*\n`
-    msg += `💵 Total: ${formatoMoneda(data.totalVenta)}\n`
-    msg += `✅ Pagado: ${formatoMoneda(data.totalPagado)}\n`
-    msg += `🎉 *¡Cuenta saldada!*\n`
-    if (boletasDetalle) msg += `\n*Tus boletas:*\n${boletasDetalle}\n`
-    msg += `\n¡Mucha suerte! 🍀`
-    msg += linkBoletas
-  } else {
-    msg = `Hola ${nombre}, te confirmamos que tu abono de *${formatoMoneda(data.montoRegistrado)}* fue registrado exitosamente. ✅\n\n`
-    msg += `*Estado de tu cuenta${data.rifaNombre ? ` - ${data.rifaNombre}` : ''}:*\n`
-    msg += `💵 Total: ${formatoMoneda(data.totalVenta)}\n`
-    msg += `✅ Pagado: ${formatoMoneda(data.totalPagado)}\n`
-    msg += `⏳ Saldo pendiente: *${formatoMoneda(data.saldoPendiente)}*\n`
-    if (boletasDetalle) msg += `\n*Tus boletas:*\n${boletasDetalle}\n`
-    msg += `\n¡Gracias por tu pago! 🙏`
-    msg += linkBoletas
-  }
-
-  return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
+  return generarWhatsAppChatLink(data.clienteTelefono)
 }
 
 // ─── Componente principal ───────────────────────────────────────────
@@ -282,10 +239,10 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
   })()
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[95vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[100dvh] sm:max-h-[95vh] my-auto">
         {/* ── Contenido imprimible ── */}
-        <div ref={reciboRef} className="p-6">
+        <div ref={reciboRef} className="p-6 overflow-y-auto flex-1 min-h-0 overscroll-contain">
           {/* Header */}
           <div className="recibo-header text-center border-b-2 border-dashed border-slate-300 pb-4 mb-4">
             <h1 className="text-xl font-bold text-slate-900">RECIBO DE PAGO</h1>
@@ -437,7 +394,7 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
         </div>
 
         {/* ── Botones de acción (NO se imprimen) ── */}
-        <div className="no-print border-t border-slate-200 p-4 space-y-3 bg-slate-50 rounded-b-2xl">
+        <div className="no-print border-t border-slate-200 p-4 space-y-3 bg-slate-50 rounded-b-2xl flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {/* Imprimir */}
           <button
             type="button"
@@ -451,7 +408,7 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
           </button>
 
           {/* WhatsApp */}
-          {WHATSAPP_MENSAJE_ACTIVO && whatsappLink && (
+          {WHATSAPP_VENTAS_ACTIVO && whatsappLink && (
             <a
               href={whatsappLink}
               target="_blank"
@@ -460,7 +417,7 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
               className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold transition-colors shadow-sm"
             >
               {WHATSAPP_SVG}
-              Notificar por WhatsApp
+              Abrir WhatsApp del cliente
             </a>
           )}
 

@@ -49,3 +49,10 @@ export function normalizarTelefono(telefono: string | undefined | null): string 
   // Por defecto, asumir Colombia
   return `57${tel}`
 }
+
+/** Link wa.me sin mensaje prearmado — solo abre el chat del cliente */
+export function generarWhatsAppChatLink(telefono: string | undefined | null): string | null {
+  const tel = normalizarTelefono(telefono)
+  if (!tel || tel.length < 7) return null
+  return `https://wa.me/${tel}`
+}
