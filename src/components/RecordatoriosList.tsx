@@ -62,7 +62,7 @@ async function generarMensajeWhatsApp(
 
     let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
     msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
-    msg += `🎯 *¡No se quede por fuera del  premio mayor este sabado 20 de Junio recuerda pagar el total de tu boleta para participar!*\n`
+    msg += `🎯 *¡No se quede por fuera del  premio mayor que vuelve y juega este sabado 27 de Junio recuerda pagar el total de tu boleta para participar!*\n`
     
 
     // Detalle por rifa
