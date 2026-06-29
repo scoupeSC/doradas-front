@@ -71,7 +71,7 @@ export default function ClienteSearch({
     }
 
     const nombre = clienteNuevo.nombre.trim()
-    const identificacion = clienteNuevo.identificacion.trim()
+    const identificacion = (clienteNuevo.identificacion ?? '').trim()
     const termino = identificacion.length >= 5 ? identificacion : nombre
 
     if (similaresOcultos || termino.length < 3) {
