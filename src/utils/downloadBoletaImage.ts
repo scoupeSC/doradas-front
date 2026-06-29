@@ -93,12 +93,19 @@ async function waitForImages(el: HTMLElement, timeoutMs = 10000): Promise<void> 
 async function triggerFileDownload(blob: Blob, fileName: string): Promise<boolean> {
   const file = new File([blob], fileName, { type: 'image/png' })
 
-  if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.({ files: [file] })) {
+  // Web Share API solo en móvil. En PC abre "Compartir" y no descarga el archivo.
+  if (
+    isMobileDevice() &&
+    typeof navigator !== 'undefined' &&
+    navigator.share &&
+    navigator.canShare?.({ files: [file] })
+  ) {
     try {
       await navigator.share({ files: [file], title: fileName })
       return true
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return true
+      if ((err as Error).name === 'AbortError') return false
+      // Si falla share, continuar con descarga directa abajo
     }
   }
 
