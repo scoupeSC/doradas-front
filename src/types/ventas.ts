@@ -42,6 +42,11 @@ export interface ClienteBoletaHistorial {
   rifa_nombre: string
   rifa_estado: string
   rifa_id?: string
+  es_actual?: boolean
+  fue_liberada?: boolean
+  total_abonado?: number
+  estado_venta?: string | null
+  resumen_pago?: string
 }
 
 export interface ClienteSimilar extends Cliente {

@@ -291,22 +291,37 @@ export default function ClienteSearch({
                       {cliente.boletas.map((boleta, index) => (
                         <div
                           key={`${cliente.id}-${boleta.rifa_id || boleta.rifa_nombre}-${boleta.numero}-${index}`}
-                          className="flex flex-wrap items-center gap-2 text-sm"
+                          className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm space-y-1"
                         >
-                          <span className="font-medium text-slate-800">
-                            #{formatNumeroBoleta(boleta.numero)}
-                          </span>
-                          <span className="text-slate-500">·</span>
-                          <span className="text-slate-700">{boleta.rifa_nombre}</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${getEstadoBoletaStyle(boleta.estado)}`}
-                          >
-                            {boleta.estado}
-                          </span>
-                          {boleta.rifa_estado === 'TERMINADA' && (
-                            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
-                              Rifa terminada
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-slate-800">
+                              #{formatNumeroBoleta(boleta.numero)}
                             </span>
+                            <span className="text-slate-500">·</span>
+                            <span className="text-slate-700">{boleta.rifa_nombre}</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${getEstadoBoletaStyle(boleta.estado)}`}
+                            >
+                              {boleta.estado}
+                            </span>
+                            {boleta.es_actual && (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                                Activa
+                              </span>
+                            )}
+                            {boleta.fue_liberada && !boleta.es_actual && (
+                              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                                Liberada
+                              </span>
+                            )}
+                            {boleta.rifa_estado === 'TERMINADA' && (
+                              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+                                Rifa terminada
+                              </span>
+                            )}
+                          </div>
+                          {boleta.resumen_pago && (
+                            <p className="text-xs text-slate-600">{boleta.resumen_pago}</p>
                           )}
                         </div>
                       ))}
