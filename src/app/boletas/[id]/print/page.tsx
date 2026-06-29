@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { boletaApi } from '@/lib/boletaApi'
 import BoletaTicket from '@/components/BoletaTicket'
 import ResponsiveBoletaWrapper from '@/components/ResponsiveBoletaWrapper'
+import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
 import type { BoletaDetail } from '@/types/boleta'
 
 export default function BoletaPrintPage() {
@@ -26,19 +27,10 @@ export default function BoletaPrintPage() {
     if (!boleta) return
     setDownloading(true)
     try {
-      const html2canvas = (await import('html2canvas-pro')).default
-      const el = document.querySelector('.print-boleta-container .boleta-ticket') as HTMLElement
-      if (!el) return
-      const canvas = await html2canvas(el, {
-        scale: 4,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
+      await downloadBoletaImage({
+        selector: '.print-boleta-container .boleta-ticket',
+        fileName: `${buildFilename(boleta)}.png`,
       })
-      const link = document.createElement('a')
-      link.download = `${buildFilename(boleta)}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
     } catch (err) {
       console.error('Error al descargar imagen:', err)
     } finally {

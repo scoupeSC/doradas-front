@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import BoletaTicket from '@/components/BoletaTicket'
 import ResponsiveBoletaWrapper from '@/components/ResponsiveBoletaWrapper'
+import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
 
 interface BoletaData {
   id: string
@@ -98,23 +99,11 @@ export default function MisBoletasPage() {
   const descargarBoleta = useCallback(async (boleta: BoletaData, cc: string) => {
     setDownloadingId(boleta.id)
     try {
-      const html2canvas = (await import('html2canvas-pro')).default
-      const wrapper = document.getElementById(`boleta-${boleta.id}`) as HTMLElement
-      const el = wrapper?.querySelector('.boleta-ticket') as HTMLElement ?? wrapper
-      if (!el) return
-
-      const canvas = await html2canvas(el, {
-        scale: 4,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
-
-      const link = document.createElement('a')
       const num = boleta.numero.toString().padStart(4, '0')
-      link.download = `boleta_${num}_CC_${cc.replace(/\s+/g, '_')}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
+      await downloadBoletaImage({
+        elementId: `boleta-${boleta.id}`,
+        fileName: `boleta_${num}_CC_${cc.replace(/\s+/g, '_')}.png`,
+      })
     } catch (err) {
       console.error('Error descargando boleta:', err)
     } finally {

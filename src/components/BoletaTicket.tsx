@@ -244,12 +244,12 @@ export default function BoletaTicket(props: BoletaTicketProps) {
         </div>
       </div>
 
-      {/* RIGHT */}
-      <div className="flex-shrink-0 h-full" style={{ width: '621px' }}>
+      {/* RIGHT — 800 - 210 = 590px (621px recortaba ~31px con overflow:hidden) */}
+      <div className="flex-shrink-0 h-full" style={{ width: '590px' }}>
         {hasImagen && !imageError && imagen ? (
           <img
             src={imagen}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain object-left"
             onError={() => setImageError(true)}
             alt={rifaNombre}
           />

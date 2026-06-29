@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import BoletaTicket from './BoletaTicket'
 import ResponsiveBoletaWrapper from './ResponsiveBoletaWrapper'
+import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
 import type { BoletaDetail } from '@/types/boleta'
 
 interface BoletaDetailProps {
@@ -22,19 +23,10 @@ export default function BoletaDetail({ boleta, onPrint }: BoletaDetailProps) {
   const handleDownloadImage = useCallback(async () => {
     setDownloading(true)
     try {
-      const html2canvas = (await import('html2canvas-pro')).default
-      const el = document.querySelector('.boleta-ticket') as HTMLElement
-      if (!el) return
-      const canvas = await html2canvas(el, {
-        scale: 4,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
+      await downloadBoletaImage({
+        selector: '.boleta-ticket',
+        fileName: `${buildFilename()}.png`,
       })
-      const link = document.createElement('a')
-      link.download = `${buildFilename()}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
     } catch (err) {
       console.error('Error al descargar imagen:', err)
     } finally {

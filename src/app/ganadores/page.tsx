@@ -353,7 +353,7 @@ export default function GanadoresPage() {
                 {/* RIGHT SIDE — Rifa Image */}
                 <div className="flex-shrink-0 h-full" style={{ width: '590px' }}>
                   {imagen ? (
-                    <img src={imagen} alt={b.rifa_nombre} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    <img src={imagen} alt={b.rifa_nombre} className="w-full h-full object-contain object-left" crossOrigin="anonymous" />
                   ) : (
                     <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                       <span className="text-slate-400 text-sm">{b.rifa_nombre}</span>
@@ -394,7 +394,7 @@ export default function GanadoresPage() {
                 </div>
                 <div className="flex-shrink-0 h-full" style={{ width: '590px' }}>
                   {imagen ? (
-                    <img src={imagen} alt={b.rifa_nombre} className="w-full h-full object-cover" crossOrigin="anonymous" />
+                    <img src={imagen} alt={b.rifa_nombre} className="w-full h-full object-contain object-left" crossOrigin="anonymous" />
                   ) : (
                     <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                       <span className="text-slate-400 text-sm">{b.rifa_nombre}</span>

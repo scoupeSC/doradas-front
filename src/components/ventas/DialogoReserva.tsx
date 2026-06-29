@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import html2canvas from 'html2canvas-pro'
+import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
 import { ventasApi } from '@/lib/ventasApi'
 import { BoletaEnCarrito, Cliente } from '@/types/ventas'
 import { generarWhatsAppChatLink } from '@/utils/telefono'
@@ -65,21 +65,12 @@ export default function DialogoReserva({
 
   // Hooks de descarga (deben estar antes de cualquier return condicional)
   const descargarBoletaReserva = useCallback(async (boletaNumero: number, identificacion: string, elementId: string) => {
-    const wrapper = document.getElementById(elementId)
-    const el = wrapper?.querySelector('.boleta-ticket') as HTMLElement ?? wrapper
-    if (!el) return
+    const cc = (identificacion || 'SIN_CC').replace(/\s+/g, '_')
     try {
-      const canvas = await html2canvas(el, {
-        scale: 4.03,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
+      await downloadBoletaImage({
+        elementId,
+        fileName: `boleta_${boletaNumero.toString().padStart(4, '0')}_CC_${cc}.png`,
       })
-      const link = document.createElement('a')
-      const cc = (identificacion || 'SIN_CC').replace(/\s+/g, '_')
-      link.download = `boleta_${boletaNumero.toString().padStart(4, '0')}_CC_${cc}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
     } catch (err) {
       console.error('Error descargando boleta:', err)
     }

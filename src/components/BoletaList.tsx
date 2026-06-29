@@ -6,6 +6,7 @@ import type { Boleta } from '@/types/boleta'
 import type { Rifa } from '@/types/rifa'
 import { getStorageImageUrl } from '@/lib/storageImageUrl'
 import { boletaApi } from '@/lib/boletaApi'
+import { downloadBoletaFromElement } from '@/utils/downloadBoletaImage'
 
 interface BoletaListProps {
   boletas: Boleta[]
@@ -172,8 +173,6 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
     setDownloadProgress({ current: 0, total: boletasToDownload.length })
 
     try {
-      const html2canvas = (await import('html2canvas-pro')).default
-
       // 1) Resolver la URL de imagen (desde boleta o rifa)
       const imagenRifaFallback = getStorageImageUrl(rifaInfo?.imagen_url ?? null) ?? rifaInfo?.imagen_url ?? null
       const primeraBoletaImg = boletasToDownload[0]?.imagen_url
@@ -268,12 +267,12 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
 
         // Usar la imagen data URL pre-cargada (sin CORS, instantáneo)
         const rightContent = imagenDataUrl
-          ? `<img src="${imagenDataUrl}" style="width:100%;height:100%;object-fit:cover;" />`
+          ? `<img src="${imagenDataUrl}" style="width:100%;height:100%;object-fit:contain;object-position:left center;" />`
           : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:white;"><div style="text-align:center;color:black;"><p style="font-size:20px;font-weight:700;">${rifaInfo?.nombre || 'Rifa'}</p><p>Boleta #${numPad}</p></div></div>`
 
         container.innerHTML = `
           <div class="boleta-ticket" style="display:flex;border:2px solid black;overflow:hidden;background:white;width:800px;height:352px;">
-            <div style="flex-shrink:0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;border-right:2px solid black;width:179px;">
+            <div style="flex-shrink:0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;border-right:2px solid black;width:210px;">
               <div style="font-size:10px;text-align:center;color:black;font-weight:500;">
                 <p>- Boleta sin pagar no juega</p>
                 <p>${caducidadText}</p>
@@ -291,7 +290,7 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
                 ${precioNum ? `<div style="text-align:center;font-size:11px;font-weight:700;color:black;">$${precioNum.toLocaleString('es-CO')}</div>` : ''}
               </div>
             </div>
-            <div style="flex-shrink:0;height:100%;width:621px;">
+            <div style="flex-shrink:0;height:100%;width:590px;">
               ${rightContent}
             </div>
           </div>
@@ -309,22 +308,15 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
 
         const ticketEl = container.querySelector('.boleta-ticket') as HTMLElement
         if (ticketEl) {
-          const canvas = await html2canvas(ticketEl, {
-            scale: 4,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-          })
-
           const num = boleta.numero.toString().padStart(4, '0')
           const cc = boleta.cliente_info?.identificacion
             ? boleta.cliente_info.identificacion.replace(/\s+/g, '_')
             : 'SIN_CC'
 
-          const link = document.createElement('a')
-          link.download = `boleta_${num}_CC_${cc}.png`
-          link.href = canvas.toDataURL('image/png')
-          link.click()
+          await downloadBoletaFromElement(
+            ticketEl,
+            `boleta_${num}_CC_${cc}.png`
+          )
         }
 
         // Espera corta entre descargas (solo para no saturar el navegador)
