@@ -7,6 +7,7 @@ import {
   ClienteResponse, 
   ClienteCreateResponse,
   ClienteDetalleResponse,
+  ClienteFiltroEstado,
   ApiError 
 } from '@/types/cliente'
 
@@ -44,10 +45,16 @@ class ClienteApiService {
     return this.handleResponse<ClienteCreateResponse>(response)
   }
 
-  async getClientes(page: number = 1, limit: number = 10, search: string = ''): Promise<ClienteListResponse> {
+  async getClientes(
+    page: number = 1,
+    limit: number = 10,
+    search: string = '',
+    filtro: ClienteFiltroEstado = 'todos'
+  ): Promise<ClienteListResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
+      filtro,
       ...(search && { search })
     })
     

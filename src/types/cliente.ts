@@ -30,6 +30,16 @@ export interface ClienteUpdateRequest {
   direccion?: string
 }
 
+export type ClienteFiltroEstado = 'todos' | 'con_boletas' | 'pagadas' | 'reservadas' | 'abonadas'
+
+export interface ClienteResumenFiltros {
+  todos: number
+  con_boletas: number
+  pagadas: number
+  reservadas: number
+  abonadas: number
+}
+
 export interface ClienteListResponse {
   success: boolean
   data: Cliente[]
@@ -38,6 +48,7 @@ export interface ClienteListResponse {
     nombre: string
     estado: string
   } | null
+  resumen_filtros?: ClienteResumenFiltros
   pagination: {
     page: number
     limit: number

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Cliente } from '@/types/cliente'
+import { Cliente, ClienteFiltroEstado, ClienteResumenFiltros } from '@/types/cliente'
 import { clienteApi } from '@/lib/clienteApi'
 import { RifaConBoletas } from '@/types/cliente'
 import { normalizarTelefono } from '@/utils/telefono'
@@ -10,6 +10,7 @@ import { getMediosDePagoTexto } from '@/config/paymentInfo'
 interface ClienteListProps {
   clientes: Cliente[]
   rifaActual?: { id: string; nombre: string; estado: string } | null
+  resumenFiltros: ClienteResumenFiltros
   pagination: {
     page: number
     limit: number
@@ -21,8 +22,8 @@ interface ClienteListProps {
   onView: (cliente: Cliente) => void
   onSearch: (search: string) => void
   onPageChange: (page: number) => void
-  onFilterEstado: (estado: string) => void
-  filtroActivo: string
+  onFilterEstado: (estado: ClienteFiltroEstado) => void
+  filtroActivo: ClienteFiltroEstado
   loading: boolean
 }
 
@@ -108,6 +109,7 @@ async function generarWhatsAppRecordatorioConDetalle(cliente: Cliente): Promise<
 export default function ClienteList({
   clientes,
   rifaActual,
+  resumenFiltros,
   pagination,
   onEdit,
   onDelete,
@@ -144,26 +146,18 @@ export default function ClienteList({
     })
   }
 
-  // Compute summary totals from current data
-  const summary = clientes.reduce(
-    (acc, c) => {
-      acc.total++
-      if ((c.total_boletas || 0) > 0) acc.conBoletas++
-      acc.pagadas += c.boletas_pagadas || 0
-      acc.reservadas += c.boletas_reservadas || 0
-      acc.abonadas += c.boletas_abonadas || 0
-      acc.deuda += c.deuda_total || 0
-      return acc
-    },
-    { total: 0, conBoletas: 0, pagadas: 0, reservadas: 0, abonadas: 0, deuda: 0 }
-  )
-
-  const filters = [
-    { key: 'todos', label: 'Todos', count: pagination.total, color: 'bg-slate-900', textColor: 'text-white' },
-    { key: 'con_boletas', label: 'Con Boletas (actual)', count: summary.conBoletas, color: 'bg-indigo-600', textColor: 'text-white' },
-    { key: 'pagadas', label: 'Pagadas (actual)', count: summary.pagadas, color: 'bg-green-600', textColor: 'text-white' },
-    { key: 'reservadas', label: 'Reservadas (actual)', count: summary.reservadas, color: 'bg-yellow-500', textColor: 'text-white' },
-    { key: 'abonadas', label: 'Abonadas (actual)', count: summary.abonadas, color: 'bg-blue-600', textColor: 'text-white' },
+  const filters: Array<{
+    key: ClienteFiltroEstado
+    label: string
+    count: number
+    color: string
+    textColor: string
+  }> = [
+    { key: 'todos', label: 'Todos', count: resumenFiltros.todos, color: 'bg-slate-900', textColor: 'text-white' },
+    { key: 'con_boletas', label: 'Con Boletas (actual)', count: resumenFiltros.con_boletas, color: 'bg-indigo-600', textColor: 'text-white' },
+    { key: 'pagadas', label: 'Pagadas (actual)', count: resumenFiltros.pagadas, color: 'bg-green-600', textColor: 'text-white' },
+    { key: 'reservadas', label: 'Reservadas (actual)', count: resumenFiltros.reservadas, color: 'bg-yellow-500', textColor: 'text-white' },
+    { key: 'abonadas', label: 'Abonadas (actual)', count: resumenFiltros.abonadas, color: 'bg-blue-600', textColor: 'text-white' },
   ]
 
   return (

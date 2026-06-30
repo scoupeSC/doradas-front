@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { clienteApi } from '@/lib/clienteApi'
-import { Cliente, ClienteListResponse } from '@/types/cliente'
+import { Cliente, ClienteListResponse, ClienteFiltroEstado, ClienteResumenFiltros } from '@/types/cliente'
 import ClienteList from '@/components/ClienteList'
 import ClienteForm from '@/components/ClienteForm'
 import ClienteDetalle from '@/components/ClienteDetalle'
@@ -17,9 +17,16 @@ export default function ClientesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
   const [viewingClienteId, setViewingClienteId] = useState<string | null>(null)
-  const [filtroActivo, setFiltroActivo] = useState('todos')
+  const [filtroActivo, setFiltroActivo] = useState<ClienteFiltroEstado>('todos')
   const [currentSearch, setCurrentSearch] = useState('')
   const [rifaActual, setRifaActual] = useState<{ id: string; nombre: string; estado: string } | null>(null)
+  const [resumenFiltros, setResumenFiltros] = useState<ClienteResumenFiltros>({
+    todos: 0,
+    con_boletas: 0,
+    pagadas: 0,
+    reservadas: 0,
+    abonadas: 0
+  })
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -37,12 +44,19 @@ export default function ClientesPage() {
     fetchClientes()
   }, [router])
 
-  const fetchClientes = async (page: number = 1, search: string = '') => {
+  const fetchClientes = async (
+    page: number = 1,
+    search: string = '',
+    filtro: ClienteFiltroEstado = filtroActivo
+  ) => {
     try {
       setLoading(true)
-      const response: ClienteListResponse = await clienteApi.getClientes(page, pagination.limit, search)
+      const response: ClienteListResponse = await clienteApi.getClientes(page, pagination.limit, search, filtro)
       setClientes(response.data)
       setRifaActual(response.rifa_actual || null)
+      if (response.resumen_filtros) {
+        setResumenFiltros(response.resumen_filtros)
+      }
       setPagination(response.pagination)
       setError(null)
     } catch (err) {
@@ -72,7 +86,7 @@ export default function ClientesPage() {
     setViewingClienteId(null)
     setEditingCliente(null)
     // Refresh list to get updated data
-    fetchClientes(pagination.page, currentSearch)
+    fetchClientes(pagination.page, currentSearch, filtroActivo)
   }
 
   const handleDeleteCliente = async (id: string) => {
@@ -82,7 +96,7 @@ export default function ClientesPage() {
 
     try {
       await clienteApi.deleteCliente(id)
-      fetchClientes(pagination.page, currentSearch)
+      fetchClientes(pagination.page, currentSearch, filtroActivo)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar cliente')
     }
@@ -97,7 +111,7 @@ export default function ClientesPage() {
       }
       setViewMode('list')
       setEditingCliente(null)
-      fetchClientes(pagination.page, currentSearch)
+      fetchClientes(pagination.page, currentSearch, filtroActivo)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar cliente')
     }
@@ -106,27 +120,16 @@ export default function ClientesPage() {
   const handleSearch = (search: string) => {
     setCurrentSearch(search)
     setFiltroActivo('todos')
-    fetchClientes(1, search)
+    fetchClientes(1, search, 'todos')
   }
 
   const handlePageChange = (page: number) => {
-    fetchClientes(page, currentSearch)
+    fetchClientes(page, currentSearch, filtroActivo)
   }
 
-  const handleFilterEstado = (estado: string) => {
+  const handleFilterEstado = (estado: ClienteFiltroEstado) => {
     setFiltroActivo(estado)
-    // Note: The filter cards are informational badges from current page data.
-    // For a production app, you'd add server-side filtering. Here we highlight the active filter visually.
-  }
-
-  // Apply client-side filtering based on filtroActivo
-  const getFilteredClientes = (): Cliente[] => {
-    if (filtroActivo === 'todos') return clientes
-    if (filtroActivo === 'con_boletas') return clientes.filter(c => (c.total_boletas || 0) > 0)
-    if (filtroActivo === 'pagadas') return clientes.filter(c => (c.boletas_pagadas || 0) > 0)
-    if (filtroActivo === 'reservadas') return clientes.filter(c => (c.boletas_reservadas || 0) > 0)
-    if (filtroActivo === 'abonadas') return clientes.filter(c => (c.boletas_abonadas || 0) > 0)
-    return clientes
+    fetchClientes(1, currentSearch, estado)
   }
 
   if (loading && clientes.length === 0 && viewMode === 'list') {
@@ -193,8 +196,9 @@ export default function ClientesPage() {
 
         {viewMode === 'list' && (
           <ClienteList
-            clientes={getFilteredClientes()}
+            clientes={clientes}
             rifaActual={rifaActual}
+            resumenFiltros={resumenFiltros}
             pagination={pagination}
             onEdit={handleEditCliente}
             onDelete={handleDeleteCliente}
