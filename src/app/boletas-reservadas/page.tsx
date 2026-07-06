@@ -113,14 +113,20 @@ export default function BoletasReservadasPage() {
   // Obtener rifas únicas para el filtro
   const rifasUnicas = Array.from(new Set(boletas.map(b => b.rifa_nombre))).sort()
 
+  const formatNumeroBoleta = (numero: number) => String(numero).padStart(4, '0')
+
   // Filtrar boletas
   const boletasFiltradas = boletas.filter(b => {
+    const term = searchTerm.trim().toLowerCase()
+    const numeroTerm = term.replace(/^#/, '')
+
     const matchSearch =
-      !searchTerm ||
-      b.numero.toString().includes(searchTerm) ||
-      (b.cliente_nombre && b.cliente_nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (b.cliente_telefono && b.cliente_telefono.includes(searchTerm)) ||
-      (b.cliente_identificacion && b.cliente_identificacion.includes(searchTerm))
+      !term ||
+      formatNumeroBoleta(b.numero).includes(numeroTerm) ||
+      b.numero.toString() === numeroTerm ||
+      (b.cliente_nombre && b.cliente_nombre.toLowerCase().includes(term)) ||
+      (b.cliente_telefono && b.cliente_telefono.includes(term)) ||
+      (b.cliente_identificacion && b.cliente_identificacion.includes(term))
 
     const matchOrigen = filtroOrigen === 'TODOS' || b.origen === filtroOrigen
     const matchRifa = filtroRifa === 'TODAS' || b.rifa_nombre === filtroRifa
