@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ClienteSearch from '@/components/ventas/ClienteSearch'
@@ -20,6 +20,14 @@ type ConfirmState = {
   onConfirm: () => void
 } | null
 
+interface ClienteGrupo {
+  clienteId: string
+  clienteNombre: string
+  clienteIdentificacion: string | null
+  clienteTelefono: string | null
+  numeros: Preasignacion[]
+}
+
 function formatNumero(n: number) {
   return String(n).padStart(4, '0')
 }
@@ -29,12 +37,24 @@ function formatFecha(iso: string | null) {
   return new Date(iso).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-const ESTADO_RIFA_STYLE: Record<string, string> = {
-  ACTIVA: 'bg-emerald-100 text-emerald-700',
-  BORRADOR: 'bg-slate-100 text-slate-700',
-  PAUSADA: 'bg-amber-100 text-amber-700',
-  TERMINADA: 'bg-red-100 text-red-700',
-  CANCELADA: 'bg-red-100 text-red-700',
+function agruparPorCliente(items: Preasignacion[]): ClienteGrupo[] {
+  const mapa = new Map<string, ClienteGrupo>()
+  for (const item of items) {
+    if (!mapa.has(item.cliente_id)) {
+      mapa.set(item.cliente_id, {
+        clienteId: item.cliente_id,
+        clienteNombre: item.cliente_nombre,
+        clienteIdentificacion: item.cliente_identificacion,
+        clienteTelefono: item.cliente_telefono,
+        numeros: [],
+      })
+    }
+    mapa.get(item.cliente_id)!.numeros.push(item)
+  }
+  for (const grupo of mapa.values()) {
+    grupo.numeros.sort((a, b) => a.numero_boleta - b.numero_boleta)
+  }
+  return Array.from(mapa.values()).sort((a, b) => a.clienteNombre.localeCompare(b.clienteNombre))
 }
 
 export default function PreasignacionesPage() {
@@ -42,19 +62,18 @@ export default function PreasignacionesPage() {
   const [user, setUser] = useState<{ id: string; nombre: string; rol: string } | null>(null)
 
   const [items, setItems] = useState<Preasignacion[]>([])
+  const [gruposNuevos, setGruposNuevos] = useState<ClienteGrupo[]>([])
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [aviso, setAviso] = useState('')
-  const [procesando, setProcesando] = useState(false)
+  const [procesando, setProcesando] = useState<string | null>(null) // id/clienteId en proceso
   const [confirm, setConfirm] = useState<ConfirmState>(null)
 
-  // Formulario alta/edición
-  const [showForm, setShowForm] = useState(false)
-  const [editando, setEditando] = useState<Preasignacion | null>(null)
-  const [formCliente, setFormCliente] = useState<Cliente | null>(null)
-  const [formNumero, setFormNumero] = useState('')
-  const [formNotas, setFormNotas] = useState('')
+  const [showBuscarCliente, setShowBuscarCliente] = useState(false)
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({})
+  const [nuevoNumeroPorCliente, setNuevoNumeroPorCliente] = useState<Record<string, string>>({})
+  const [editandoChip, setEditandoChip] = useState<{ id: string; valor: string } | null>(null)
 
   // Modal "Asignar a la nueva rifa" (solo SUPER_ADMIN)
   const [showAplicar, setShowAplicar] = useState(false)
@@ -83,100 +102,124 @@ export default function PreasignacionesPage() {
   const cargar = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const data = await preasignacionesApi.listar(q)
+      const data = await preasignacionesApi.listar()
       setItems(data)
     } catch (e: any) {
       setError(e.message || 'Error al cargar las preasignaciones')
     } finally {
       setLoading(false)
     }
-  }, [q])
+  }, [])
 
   useEffect(() => {
     if (!user) return
     cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [user, cargar])
 
-  const buscar = () => cargar()
+  const gruposExistentes = useMemo(() => agruparPorCliente(items), [items])
 
-  const abrirNuevo = () => {
-    setEditando(null)
-    setFormCliente(null)
-    setFormNumero('')
-    setFormNotas('')
-    setShowForm(true)
+  const grupos = useMemo(() => {
+    const idsExistentes = new Set(gruposExistentes.map((g) => g.clienteId))
+    const extras = gruposNuevos.filter((g) => !idsExistentes.has(g.clienteId))
+    const todos = [...extras, ...gruposExistentes]
+    const termino = q.trim().toLowerCase()
+    if (!termino) return todos
+    return todos.filter((g) =>
+      g.clienteNombre.toLowerCase().includes(termino) ||
+      (g.clienteIdentificacion || '').toLowerCase().includes(termino) ||
+      (g.clienteTelefono || '').toLowerCase().includes(termino) ||
+      g.numeros.some((n) => formatNumero(n.numero_boleta).includes(termino))
+    )
+  }, [gruposExistentes, gruposNuevos, q])
+
+  const totalNumeros = items.length
+
+  const onClienteSeleccionado = (cliente: Cliente) => {
+    setShowBuscarCliente(false)
+    if (!cliente.id) return
+    const yaExiste = gruposExistentes.some((g) => g.clienteId === cliente.id) ||
+      gruposNuevos.some((g) => g.clienteId === cliente.id)
+    if (!yaExiste) {
+      setGruposNuevos((prev) => [
+        ...prev,
+        {
+          clienteId: cliente.id!,
+          clienteNombre: cliente.nombre,
+          clienteIdentificacion: cliente.identificacion || null,
+          clienteTelefono: cliente.telefono || null,
+          numeros: [],
+        },
+      ])
+    }
+    setExpandido((prev) => ({ ...prev, [cliente.id!]: true }))
+    setQ('')
   }
 
-  const abrirEditar = (item: Preasignacion) => {
-    setEditando(item)
-    setFormCliente({
-      id: item.cliente_id,
-      nombre: item.cliente_nombre,
-      telefono: item.cliente_telefono || '',
-      email: item.cliente_email || '',
-      identificacion: item.cliente_identificacion || '',
-      direccion: '',
-    })
-    setFormNumero(String(item.numero_boleta))
-    setFormNotas(item.notas || '')
-    setShowForm(true)
-  }
-
-  const guardar = async () => {
+  const agregarNumero = async (clienteId: string) => {
+    const valor = (nuevoNumeroPorCliente[clienteId] || '').trim()
+    const numero = Number(valor)
     setError(''); setAviso('')
-    if (!formCliente) { setError('Selecciona un cliente existente.'); return }
-    const numero = Number(formNumero)
-    if (!Number.isInteger(numero) || numero < 0 || numero > 9999) {
-      setError('El número de boleta debe estar entre 0 y 9999.')
+    if (!valor || !Number.isInteger(numero) || numero < 0 || numero > 9999) {
+      setError('Escribe un número de boleta válido (0 a 9999).')
       return
     }
 
-    setProcesando(true)
+    setProcesando(clienteId)
     try {
-      if (editando) {
-        await preasignacionesApi.actualizar(editando.id, {
-          cliente_id: formCliente.id,
-          numero_boleta: numero,
-          notas: formNotas,
-        })
-        setAviso(`Preasignación #${formatNumero(numero)} actualizada.`)
-      } else {
-        await preasignacionesApi.crear({
-          cliente_id: formCliente.id!,
-          numero_boleta: numero,
-          notas: formNotas,
-        })
-        setAviso(`Boleta #${formatNumero(numero)} preasignada a ${formCliente.nombre}.`)
-      }
-      setShowForm(false)
+      await preasignacionesApi.crear({ cliente_id: clienteId, numero_boleta: numero })
+      setNuevoNumeroPorCliente((prev) => ({ ...prev, [clienteId]: '' }))
+      setAviso(`Boleta #${formatNumero(numero)} preasignada correctamente.`)
       await cargar()
     } catch (e: any) {
-      setError(e.message || 'Error al guardar la preasignación')
+      setError(e.message || 'Error al preasignar el número')
     } finally {
-      setProcesando(false)
+      setProcesando(null)
     }
   }
 
-  const eliminar = (item: Preasignacion) => {
+  const quitarNumero = (item: Preasignacion) => {
     setConfirm({
-      title: 'Eliminar preasignación',
-      message: `Se eliminará la preasignación del número #${formatNumero(item.numero_boleta)} para ${item.cliente_nombre}. Esto NO afecta ninguna venta o boleta ya creada anteriormente.`,
+      title: 'Quitar número preasignado',
+      message: `Se quitará la boleta #${formatNumero(item.numero_boleta)} de ${item.cliente_nombre}. Esto NO afecta ninguna venta ya creada anteriormente.`,
       type: 'danger',
       onConfirm: async () => {
-        setProcesando(true); setError(''); setAviso('')
+        setProcesando(item.id); setError(''); setAviso('')
         try {
           await preasignacionesApi.eliminar(item.id)
-          setAviso('Preasignación eliminada.')
+          setAviso('Número quitado.')
           await cargar()
         } catch (e: any) {
-          setError(e.message || 'Error al eliminar')
+          setError(e.message || 'Error al quitar el número')
         } finally {
-          setProcesando(false)
+          setProcesando(null)
           setConfirm(null)
         }
       },
     })
+  }
+
+  const guardarEdicionChip = async () => {
+    if (!editandoChip) return
+    const numero = Number(editandoChip.valor)
+    if (!Number.isInteger(numero) || numero < 0 || numero > 9999) {
+      setError('El número debe estar entre 0 y 9999.')
+      return
+    }
+    setProcesando(editandoChip.id); setError(''); setAviso('')
+    try {
+      await preasignacionesApi.actualizar(editandoChip.id, { numero_boleta: numero })
+      setAviso('Número actualizado.')
+      setEditandoChip(null)
+      await cargar()
+    } catch (e: any) {
+      setError(e.message || 'Error al actualizar el número')
+    } finally {
+      setProcesando(null)
+    }
+  }
+
+  const quitarClienteVacio = (clienteId: string) => {
+    setGruposNuevos((prev) => prev.filter((g) => g.clienteId !== clienteId))
   }
 
   const abrirAplicar = async () => {
@@ -231,14 +274,14 @@ export default function PreasignacionesPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <button onClick={() => router.push('/dashboard')} className="text-sm text-slate-500 hover:text-slate-800 mb-1">
               ← Dashboard
             </button>
             <h1 className="text-xl font-bold text-slate-900">Boletas Preasignadas</h1>
             <p className="text-xs text-slate-500">
-              Guarda qué número le corresponde a cada cliente fijo, y aplícalo de un clic cuando salga la próxima rifa.
+              Busca un cliente y asígnale los números que siempre pide. Se aplican todos de un clic cuando salga la próxima rifa.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -251,35 +294,26 @@ export default function PreasignacionesPage() {
               </button>
             )}
             <button
-              onClick={abrirNuevo}
+              onClick={() => setShowBuscarCliente(true)}
               className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 text-sm"
             >
-              + Nueva asignación
+              + Buscar cliente
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto px-4 py-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6">
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Buscar por número, nombre, cédula o teléfono
+            Filtrar por cliente o número ({totalNumeros} número{totalNumeros !== 1 ? 's' : ''} preasignado{totalNumeros !== 1 ? 's' : ''})
           </label>
-          <div className="flex gap-2">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && buscar()}
-              placeholder="Ej: 0047  ó  Juan Pérez"
-              className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              onClick={buscar}
-              className="px-5 py-2.5 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-800"
-            >
-              Buscar
-            </button>
-          </div>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Ej: 0047  ó  Juan Pérez"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
 
         {error && (
@@ -289,135 +323,134 @@ export default function PreasignacionesPage() {
           <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">{aviso}</div>
         )}
 
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center gap-3 text-slate-500 text-sm py-10 justify-center">
-              <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-              Cargando...
-            </div>
-          ) : items.length === 0 ? (
-            <div className="text-center py-12 text-slate-500 text-sm">
-              No hay boletas preasignadas todavía. Usa &quot;+ Nueva asignación&quot; para agregar la primera.
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-500 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Número</th>
-                  <th className="px-4 py-3 font-medium">Cliente</th>
-                  <th className="px-4 py-3 font-medium">Notas</th>
-                  <th className="px-4 py-3 font-medium">Última aplicación</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <span className="font-mono font-bold text-slate-800">#{formatNumero(item.numero_boleta)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800">{item.cliente_nombre}</div>
-                      <div className="text-xs text-slate-500">
-                        {item.cliente_identificacion || '—'} · {item.cliente_telefono || '—'}
+        {loading ? (
+          <div className="flex items-center gap-3 text-slate-500 text-sm py-10 justify-center">
+            <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            Cargando...
+          </div>
+        ) : grupos.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 text-center py-12 text-slate-500 text-sm">
+            No hay boletas preasignadas todavía. Usa &quot;+ Buscar cliente&quot; para empezar.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {grupos.map((grupo) => {
+              const abierto = expandido[grupo.clienteId] ?? grupo.numeros.length <= 6
+              return (
+                <div key={grupo.clienteId} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <button
+                    onClick={() => setExpandido((prev) => ({ ...prev, [grupo.clienteId]: !abierto }))}
+                    className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">{grupo.clienteNombre}</p>
+                      <p className="text-xs text-slate-500">
+                        {grupo.clienteIdentificacion || '—'} · {grupo.clienteTelefono || '—'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                        {grupo.numeros.length} boleta{grupo.numeros.length !== 1 ? 's' : ''}
+                      </span>
+                      <svg className={`w-4 h-4 text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {abierto && (
+                    <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {grupo.numeros.map((n) => (
+                          <div
+                            key={n.id}
+                            className="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 pl-3 pr-1.5 py-1"
+                            title={n.ultima_aplicacion_en ? `Aplicada a ${n.ultima_aplicacion_rifa_nombre} · ${formatFecha(n.ultima_aplicacion_en)}` : 'Aún no aplicada'}
+                          >
+                            {editandoChip?.id === n.id ? (
+                              <input
+                                autoFocus
+                                type="number"
+                                min={0}
+                                max={9999}
+                                value={editandoChip.valor}
+                                onChange={(e) => setEditandoChip({ id: n.id, valor: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && guardarEdicionChip()}
+                                onBlur={guardarEdicionChip}
+                                className="w-16 text-sm border border-indigo-300 rounded px-1 py-0.5"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => setEditandoChip({ id: n.id, valor: String(n.numero_boleta) })}
+                                className="font-mono font-semibold text-sm text-slate-800 hover:text-indigo-600"
+                              >
+                                #{formatNumero(n.numero_boleta)}
+                              </button>
+                            )}
+                            {n.ultima_aplicacion_en && (
+                              <span className="text-[10px] text-blue-600 font-medium">✓</span>
+                            )}
+                            <button
+                              onClick={() => quitarNumero(n)}
+                              disabled={procesando === n.id}
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-40"
+                              title="Quitar número"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        {grupo.numeros.length === 0 && (
+                          <p className="text-sm text-slate-400 italic">Sin números todavía. Agrega el primero abajo.</p>
+                        )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-[240px] truncate" title={item.notas || ''}>
-                      {item.notas || '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {item.ultima_aplicacion_en ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                          {item.ultima_aplicacion_rifa_nombre} · {formatFecha(item.ultima_aplicacion_en)}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400">Aún no aplicada</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button onClick={() => abrirEditar(item)} className="text-indigo-600 hover:text-indigo-800 font-medium mr-3">
-                        Editar
-                      </button>
-                      <button onClick={() => eliminar(item)} className="text-red-600 hover:text-red-800 font-medium">
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          max={9999}
+                          value={nuevoNumeroPorCliente[grupo.clienteId] || ''}
+                          onChange={(e) => setNuevoNumeroPorCliente((prev) => ({ ...prev, [grupo.clienteId]: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && agregarNumero(grupo.clienteId)}
+                          placeholder="Número de boleta"
+                          className="w-40 rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                        />
+                        <button
+                          onClick={() => agregarNumero(grupo.clienteId)}
+                          disabled={procesando === grupo.clienteId || !(nuevoNumeroPorCliente[grupo.clienteId] || '').trim()}
+                          className="px-3 py-1.5 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                        >
+                          {procesando === grupo.clienteId ? 'Agregando...' : '+ Agregar boleta'}
+                        </button>
+                        {grupo.numeros.length === 0 && (
+                          <button
+                            onClick={() => quitarClienteVacio(grupo.clienteId)}
+                            className="text-xs text-slate-400 hover:text-slate-600 ml-auto"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </main>
 
-      {/* Modal: alta / edición */}
-      {showForm && (
+      {/* Modal: buscar cliente para agregar/gestionar */}
+      {showBuscarCliente && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {editando ? `Editar preasignación #${formatNumero(editando.numero_boleta)}` : 'Nueva preasignación'}
-              </h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="text-lg font-semibold text-slate-900">Buscar cliente</h3>
+              <button onClick={() => setShowBuscarCliente(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
-            <div className="p-6 space-y-4">
-              {formCliente ? (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-900">{formCliente.nombre}</p>
-                    <p className="text-xs text-emerald-700">
-                      {formCliente.identificacion || '—'} · {formCliente.telefono || '—'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setFormCliente(null)}
-                    className="text-xs font-medium text-emerald-800 hover:text-emerald-950"
-                  >
-                    Cambiar cliente
-                  </button>
-                </div>
-              ) : (
-                <ClienteSearch permitirCrear={false} onClienteSelected={(c) => setFormCliente(c)} />
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Número de boleta</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={9999}
-                    value={formNumero}
-                    onChange={(e) => setFormNumero(e.target.value)}
-                    placeholder="Ej: 47"
-                    className="w-full px-3 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-black"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-black mb-2">Notas (opcional)</label>
-                  <input
-                    value={formNotas}
-                    onChange={(e) => setFormNotas(e.target.value)}
-                    placeholder="Ej: siempre pide el mismo número"
-                    className="w-full px-3 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-black"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
-              <button
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={guardar}
-                disabled={procesando || !formCliente || !formNumero}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
-              >
-                {procesando ? 'Guardando...' : 'Guardar'}
-              </button>
+            <div className="p-6">
+              <ClienteSearch permitirCrear={false} onClienteSelected={onClienteSeleccionado} />
             </div>
           </div>
         </div>
@@ -435,7 +468,7 @@ export default function PreasignacionesPage() {
               {!resultadoAplicar ? (
                 <>
                   <p className="text-sm text-slate-600">
-                    Se revisará cada uno de los {items.length} número(s) preasignado(s). Las boletas que ya estén
+                    Se revisará cada uno de los {totalNumeros} número(s) preasignado(s). Las boletas que ya estén
                     vendidas o reservadas por otro motivo NO se tocarán; solo se reservan las que estén disponibles.
                   </p>
                   <div>
