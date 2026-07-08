@@ -25,9 +25,7 @@ interface UsuarioOption {
 
 const MEDIOS_PAGO = [
   { id: 'd397d917-c0d0-4c61-b2b3-2ebfab7deeb7', nombre: 'Efectivo' },
-  { id: 'af6e15fc-c52c-4491-abe1-20243af301c4', nombre: 'Nequi' },
   { id: 'db94562d-bb01-42a3-9414-6e369a1a70ba', nombre: 'PSE' },
-  { id: '57a2f560-b3d7-4fa8-91cf-24e6b2a6d7ff', nombre: 'Tarjeta Crédito' },
 ]
 
 const ROL_LABELS: Record<string, string> = {

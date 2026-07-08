@@ -127,11 +127,7 @@ function estadoBoletaTicket(b: BoletaVenta): string {
 
 const MEDIOS_PAGO = [
   { id: 'efectivo', label: 'Efectivo' },
-  { id: 'nequi', label: 'Nequi' },
   { id: 'transferencia', label: 'PSE' },
-  { id: 'tarjeta', label: 'Tarjeta Crédito' },
-  { id: 'daviplata', label: 'Daviplata' },
-  { id: 'otro', label: 'Otro' }
 ]
 
 export default function RegistrarAbono({ ventaId, onBack, onAbonoRegistrado }: Props) {

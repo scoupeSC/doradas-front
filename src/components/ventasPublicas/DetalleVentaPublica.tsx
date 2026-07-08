@@ -18,11 +18,7 @@ interface DetalleVentaPublicaProps {
 
 const MEDIOS_PAGO = [
   { id: 'efectivo', label: '💵 Efectivo' },
-  { id: 'nequi', label: '📱 Nequi' },
-  { id: 'transferencia', label: '🏦 PSE / Transferencia' },
-  { id: 'tarjeta', label: '💳 Tarjeta Crédito' },
-  { id: 'daviplata', label: '📲 Daviplata' },
-  { id: 'otro', label: '🔄 Otro' }
+  { id: 'transferencia', label: '🏦 PSE' },
 ]
 
 export default function DetalleVentaPublica({
