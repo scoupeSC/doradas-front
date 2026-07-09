@@ -48,7 +48,7 @@ interface ApiResponse {
   message?: string
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://rifas-backend-production.up.railway.app/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 const PUBLIC_API_KEY = process.env.NEXT_PUBLIC_PUBLIC_API_KEY || 'pk_4f9a8c7e2d1b6a9f3c0d5e7f8a2b4c6d'
 
 export default function MisBoletasPage() {

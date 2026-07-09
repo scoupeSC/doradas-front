@@ -25,12 +25,13 @@ interface BoletaTicketProps {
   reservadaHasta?: string | null
   precio?: number | null
   nota?: string | null
+  hideQr?: boolean
+  hideIdentificacion?: boolean
 }
 
 export default function BoletaTicket(props: BoletaTicketProps) {
   const {
     qrUrl,
-    barcode,
     numero,
     imagenUrl,
     rifaNombre,
@@ -40,6 +41,8 @@ export default function BoletaTicket(props: BoletaTicketProps) {
     reservadaHasta,
     precio,
     nota,
+    hideQr = false,
+    hideIdentificacion = false,
   } = props
 
   const [imageError, setImageError] = useState(false)
@@ -61,7 +64,6 @@ export default function BoletaTicket(props: BoletaTicketProps) {
     img.src = imagen
   }, [imagen, hasImagen])
 
-  // --- Helpers ---
   const estadoNorm = (estado ?? '').toString().trim().toUpperCase()
   const deudaNum =
     typeof deuda === 'number'
@@ -88,15 +90,13 @@ export default function BoletaTicket(props: BoletaTicketProps) {
     }
   }
 
-  // Calcular días de caducidad dinámicamente
   const diasCaducidad = (() => {
     if (!reservadaHasta) return null
     try {
       const hasta = new Date(reservadaHasta)
       const ahora = new Date()
       const diffMs = hasta.getTime() - ahora.getTime()
-      const dias = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
-      return dias
+      return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
     } catch {
       return null
     }
@@ -104,48 +104,42 @@ export default function BoletaTicket(props: BoletaTicketProps) {
 
   const esReservada = estadoNorm === 'RESERVADA'
   const esCancelada = estadoNorm === 'ANULADA' || estadoNorm === 'CANCELADA'
-
   const estadoPagadoWords = new Set(['CON_PAGO', 'PAGADA', 'PAGADO', 'VENDIDA'])
-  const esPagada = (estadoPagadoWords.has(estadoNorm) || (tieneCliente && deudaNum === 0)) && tieneCliente
-
+  const esPagada =
+    (estadoPagadoWords.has(estadoNorm) || (tieneCliente && deudaNum === 0)) && tieneCliente
   const esAbonada =
     estadoNorm === 'ABONADA' || (tieneCliente && typeof deudaNum === 'number' && deudaNum > 0)
 
-  const badge = (label: string, className: string) => (
-    <div
-      className={`w-full py-1 text-center font-extrabold text-[11px] ${className}`}
-      style={{ letterSpacing: '0.5px' }}
-    >
-      {label}
-    </div>
+  const badge = (label: string, variant: string) => (
+    <div className={`boleta-ticket__badge boleta-ticket__badge--${variant}`}>{label}</div>
   )
-
-  const baseText = 'text-[9px] text-left space-y-1 text-black leading-snug'
 
   const renderEstado = () => {
     if (esCancelada) {
       return (
-        <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-          {badge('BOLETA CANCELADA', 'bg-red-600 text-white')}
-          <p className="font-bold">Esta boleta no tiene validez</p>
+        <div className="boleta-ticket__body">
+          {badge('Boleta cancelada', 'cancelada')}
+          <p className="mt-1 text-neutral-400">Esta boleta no tiene validez</p>
         </div>
       )
     }
 
     if (esReservada && tieneCliente) {
       return (
-        <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-          {badge('RESERVADA', 'bg-blue-600 text-white')}
+        <div className="boleta-ticket__body">
+          {badge('Reservada', 'reservada')}
           {typeof deudaNum === 'number' && deudaNum > 0 && (
-            <p className="font-extrabold">
+            <p className="boleta-ticket__deuda mt-1">
               Deuda: ${deudaNum.toLocaleString('es-CO')}
             </p>
           )}
-          <p className="font-semibold">A nombre de:</p>
-          <p>{clienteInfo?.nombre ?? '—'}</p>
-          <p>CC. {clienteInfo?.identificacion ?? '—'}</p>
-          <p className="font-bold" style={{ wordSpacing: '1px' }}>
-            Reservada hasta: {formatDateDisplay(reservadaHasta) ?? '—'}
+          <p className="boleta-ticket__label">A nombre de</p>
+          <p className="boleta-ticket__name">{clienteInfo?.nombre ?? '—'}</p>
+          {!hideIdentificacion && (
+            <p className="boleta-ticket__id">CC. {clienteInfo?.identificacion ?? '—'}</p>
+          )}
+          <p className="mt-1 text-neutral-400">
+            Hasta: {formatDateDisplay(reservadaHasta) ?? '—'}
           </p>
         </div>
       )
@@ -153,119 +147,91 @@ export default function BoletaTicket(props: BoletaTicketProps) {
 
     if (esReservada && !tieneCliente) {
       return (
-        <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-          {badge('BLOQUEADA', 'bg-amber-200 text-black')}
-          <p className="font-semibold">Boleta bloqueada momentáneamente</p>
+        <div className="boleta-ticket__body">
+          {badge('Bloqueada', 'bloqueada')}
+          <p className="mt-1 text-neutral-400">Boleta bloqueada momentáneamente</p>
         </div>
       )
     }
 
     if (esPagada) {
       return (
-        <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-          {badge('PAGADA', 'bg-green-700 text-white')}
-          <p className="font-semibold">A nombre de:</p>
-          <p>{clienteInfo?.nombre ?? '—'}</p>
-          <p>CC. {clienteInfo?.identificacion ?? '—'}</p>
+        <div className="boleta-ticket__body">
+          {badge('Pagada', 'pagada')}
+          <p className="boleta-ticket__label">A nombre de</p>
+          <p className="boleta-ticket__name">{clienteInfo?.nombre ?? '—'}</p>
+          {!hideIdentificacion && (
+            <p className="boleta-ticket__id">CC. {clienteInfo?.identificacion ?? '—'}</p>
+          )}
         </div>
       )
     }
 
     if (esAbonada) {
       return (
-        <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-          {badge('ABONADA', 'bg-orange-400 text-black')}
-          <p className="font-extrabold">
-            Deuda: {typeof deudaNum === 'number' ? `$${deudaNum.toLocaleString('es-CO')}` : '—'}
+        <div className="boleta-ticket__body">
+          {badge('Abonada', 'abonada')}
+          <p className="boleta-ticket__deuda mt-1">
+            Deuda:{' '}
+            {typeof deudaNum === 'number' ? `$${deudaNum.toLocaleString('es-CO')}` : '—'}
           </p>
-          <p className="font-semibold">A nombre de:</p>
-          <p>{clienteInfo?.nombre ?? '—'}</p>
-          <p>CC. {clienteInfo?.identificacion ?? '—'}</p>
+          <p className="boleta-ticket__label">A nombre de</p>
+          <p className="boleta-ticket__name">{clienteInfo?.nombre ?? '—'}</p>
+          {!hideIdentificacion && (
+            <p className="boleta-ticket__id">CC. {clienteInfo?.identificacion ?? '—'}</p>
+          )}
         </div>
       )
     }
 
     return (
-      <div className={baseText} style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-        {badge('DISPONIBLE', 'bg-emerald-300 text-black')}
+      <div className="boleta-ticket__body">
+        {badge('Disponible', 'disponible')}
       </div>
     )
   }
 
-  // Dimensiones: ancho fijo 800px; altura según proporción del arte de la rifa (~334px).
   return (
     <div
-      className="boleta-ticket flex border-2 border-black overflow-hidden bg-white"
-      style={{ width: `${BOLETA_WIDTH}px`, height: `${ticketHeight}px`, minWidth: `${BOLETA_WIDTH}px` }}
+      className="boleta-ticket"
+      style={{
+        width: `${BOLETA_WIDTH}px`,
+        height: `${ticketHeight}px`,
+        minWidth: `${BOLETA_WIDTH}px`,
+      }}
     >
-      {/* LEFT */}
       <div
-        className="flex-shrink-0 p-2 flex flex-col justify-between border-r-2 border-black"
-        style={{
-          width: `${BOLETA_LEFT_WIDTH}px`,
-          height: `${ticketHeight}px`,
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          fontKerning: 'none',
-          fontVariantLigatures: 'none',
-          overflow: 'hidden',
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-        }}
+        className="boleta-ticket__left"
+        style={{ width: `${BOLETA_LEFT_WIDTH}px`, height: `${ticketHeight}px` }}
       >
-        {/* Condiciones */}
-        <div
-          className="text-[9px] text-black font-semibold leading-snug text-left"
-          style={{ overflowWrap: 'break-word', wordBreak: 'break-word', wordSpacing: '3px', letterSpacing: '0.6px' }}
-        >
-          <p>- Boleta sin pagar no juega</p>
+        <div className="boleta-ticket__rules">
+          <p>Boleta sin pagar no juega</p>
           {diasCaducidad !== null ? (
-            <p>- {diasCaducidad} días de caducidad</p>
+            <p>{diasCaducidad} días de caducidad</p>
           ) : (
-            <p>- Válida hasta el día del sorteo</p>
+            <p>Válida hasta el día del sorteo</p>
           )}
-          <p>- Juega hasta quedar en poder del público</p>
+          <p>Juega hasta quedar en poder del público</p>
         </div>
 
-        {/* Estado */}
-        <div className="flex-1 flex items-center mt-1 mb-1 overflow-hidden">
-          <div className="w-full" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-            {renderEstado()}
-          </div>
-        </div>
+        <div className="boleta-ticket__content">{renderEstado()}</div>
 
-        {/* QR */}
-        <div className="flex justify-center mb-1">
-          <img
-            src={qrUrl}
-            alt="QR"
-            style={{ width: '72px', height: '72px', border: '1px solid #000' }}
-          />
-        </div>
-
-        {/* Nota */}
-        {nota && (
-          <div
-            className="text-center text-[8px] italic text-slate-600"
-            style={{ maxHeight: '24px', overflow: 'hidden', lineHeight: '10px' }}
-          >
-            {nota}
+        {!hideQr && (
+          <div className="boleta-ticket__qr-wrap">
+            <img src={qrUrl} alt="QR" className="boleta-ticket__qr" />
           </div>
         )}
 
-        {/* Número y precio */}
-        <div className="text-center mt-1">
-          <div className="text-lg font-extrabold text-black leading-tight">
-            #{numero.toString().padStart(4, '0')}
-          </div>
+        {nota && <div className="boleta-ticket__nota">{nota}</div>}
+
+        <div className="boleta-ticket__footer">
+          <div className="boleta-ticket__numero">#{numero.toString().padStart(4, '0')}</div>
           {typeof precio === 'number' && precio > 0 && (
-            <div className="text-[11px] font-bold text-black leading-snug">
-              ${precio.toLocaleString('es-CO')}
-            </div>
+            <div className="boleta-ticket__precio">${precio.toLocaleString('es-CO')}</div>
           )}
         </div>
       </div>
 
-      {/* RIGHT — altura = ticketHeight para que el arte llene sin márgenes */}
       <div className="flex-shrink-0 h-full" style={{ width: `${BOLETA_RIGHT_WIDTH}px` }}>
         {hasImagen && !imageError && imagen ? (
           <img
@@ -282,9 +248,9 @@ export default function BoletaTicket(props: BoletaTicketProps) {
             alt={rifaNombre}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-white">
-            <div className="text-center text-black">
-              <p className="text-xl font-bold">{rifaNombre}</p>
+          <div className="boleta-ticket__right-fallback">
+            <div className="text-center">
+              <p>{rifaNombre}</p>
               <p>Boleta #{numero.toString().padStart(4, '0')}</p>
             </div>
           </div>

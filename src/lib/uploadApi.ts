@@ -1,6 +1,7 @@
+import { API_BASE_URL } from '@/config/api'
+
 class UploadApiService {
-  private baseUrl =
-    process.env.NEXT_PUBLIC_API_URL || 'https://rifas-backend-production.up.railway.app/api'
+  private baseUrl = `${API_BASE_URL}/api`
 
   async uploadImagen(file: File): Promise<{ ok: boolean; url: string }> {
     const token =

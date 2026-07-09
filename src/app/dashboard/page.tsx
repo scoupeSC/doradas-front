@@ -53,10 +53,10 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen app-shell flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-slate-500 text-sm">Cargando...</span>
+          <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-neutral-400 text-sm">Cargando...</span>
         </div>
       </div>
     )
@@ -69,35 +69,35 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30">
+    <div className="app-shell">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+      <header className="app-header sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-black/50">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-slate-900 leading-tight">Sistema de Rifas</h1>
-                <p className="text-[11px] text-slate-400 leading-none">Panel de Administración</p>
+                <h1 className="text-lg font-semibold text-neutral-100 leading-tight">Sistema de Rifas</h1>
+                <p className="text-[11px] text-neutral-500 leading-none">Panel de Administración</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-semibold">
+              <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center text-white text-xs font-semibold">
                   {user.nombre?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-slate-800 leading-tight">{user.nombre}</p>
-                  <p className="text-[11px] text-slate-400 leading-tight">{roleLabel[normalizedRole || ''] || user.rol}</p>
+                  <p className="text-sm font-medium text-neutral-100 leading-tight">{user.nombre}</p>
+                  <p className="text-[11px] text-neutral-500 leading-tight">{roleLabel[normalizedRole || ''] || user.rol}</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                 title="Cerrar sesión"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,50 +118,50 @@ export default function DashboardPage() {
 
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-1">
+          <h2 className="text-2xl font-semibold text-neutral-100 mb-1">
             Bienvenido, {user.nombre.split(' ')[0]}
           </h2>
-          <p className="text-slate-500 text-sm">
+          <p className="text-neutral-500 text-sm">
             Gestiona tus rifas, ventas y clientes desde un solo lugar
           </p>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm">
+          <div className="module-stat-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="module-card-icon module-card--indigo !w-10 !h-10">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Rol</p>
-                <p className="text-lg font-semibold text-slate-900">{roleLabel[normalizedRole || ''] || user.rol}</p>
+                <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Rol</p>
+                <p className="text-lg font-semibold text-neutral-100">{roleLabel[normalizedRole || ''] || user.rol}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm">
+          <div className="module-stat-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="module-card-icon module-card--emerald !w-10 !h-10">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Correo</p>
-                <p className="text-sm font-medium text-slate-900 truncate max-w-[180px]">{user.email}</p>
+                <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Correo</p>
+                <p className="text-sm font-medium text-neutral-100 truncate max-w-[180px]">{user.email}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm">
+          <div className="module-stat-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
+              <div className="module-card-icon module-card--emerald !w-10 !h-10">
+                <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Estado</p>
-                <p className="text-lg font-semibold text-green-600">Activo</p>
+                <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Estado</p>
+                <p className="text-lg font-semibold text-emerald-400">Activo</p>
               </div>
             </div>
           </div>
@@ -170,10 +170,10 @@ export default function DashboardPage() {
         {/* Modules */}
         <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-2 mb-5">
-            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
-            <h3 className="text-lg font-semibold text-slate-900">Módulos</h3>
+            <h3 className="text-lg font-semibold text-neutral-100">Módulos</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -181,25 +181,23 @@ export default function DashboardPage() {
             {canUseOperationalModules && (
               <a
                 href="/ventas"
-                className="group relative bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl text-white overflow-hidden card-hover shadow-lg shadow-indigo-600/15"
+                className="group module-card module-card--indigo card-hover"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+                    <div className="module-card-icon">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-[11px] font-semibold border border-white/10">
-                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                    <span className="module-card-badge">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                       En vivo
                     </span>
                   </div>
-                  <h4 className="text-lg font-semibold mb-1">Ventas</h4>
-                  <p className="text-indigo-100 text-sm leading-relaxed">Sistema de ventas con bloqueo en tiempo real</p>
-                  <div className="mt-4 flex items-center text-indigo-200 text-xs font-medium group-hover:text-white transition-colors">
+                  <h4 className="text-lg font-semibold mb-1 text-neutral-100">Ventas</h4>
+                  <p className="module-card-desc">Sistema de ventas con bloqueo en tiempo real</p>
+                  <div className="module-card-link">
                     Ir al módulo
                     <svg className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                   </div>
@@ -599,7 +597,7 @@ export default function DashboardPage() {
 
       {/* Footer */}
       <footer className="mt-auto py-6 text-center">
-        <p className="text-xs text-slate-400">Sistema de Rifas © {new Date().getFullYear()} · v2.0</p>
+        <p className="text-xs text-neutral-600">Sistema de Rifas © {new Date().getFullYear()} · v2.0</p>
       </footer>
     </div>
   )

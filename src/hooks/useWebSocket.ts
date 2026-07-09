@@ -37,7 +37,7 @@ export function useWebSocket({
 
     try {
       const token = localStorage.getItem('token')
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://rifas-backend-production.up.railway.app'
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000'
       
       // Verificar si el navegador soporta WebSocket
       if (typeof WebSocket === 'undefined') {

@@ -81,13 +81,13 @@ export default function Page() {
   );
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-slate-500 font-light">Cargando módulo...</div>
+    <div className="app-shell flex items-center justify-center">
+      <div className="text-neutral-500 font-light">Cargando módulo...</div>
     </div>
   );
   
   if (!rifas.length) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500">
+    <div className="app-shell flex items-center justify-center text-neutral-500">
       No hay rifas configuradas en el sistema.
     </div>
   );

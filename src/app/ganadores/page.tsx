@@ -5,12 +5,7 @@ import { useRouter } from 'next/navigation'
 import { API_BASE_URL } from '@/config/api'
 import { getStorageImageUrl } from '@/lib/storageImageUrl'
 import GanadorAsignarDirecto from '@/components/ganadores/GanadorAsignarDirecto'
-import {
-  BOLETA_WIDTH,
-  BOLETA_LEFT_WIDTH,
-  BOLETA_RIGHT_WIDTH,
-  BOLETA_DEFAULT_HEIGHT,
-} from '@/constants/boletaDimensions'
+import BoletaTicket from '@/components/BoletaTicket'
 
 interface VentaInfo {
   monto_total: number
@@ -293,78 +288,24 @@ export default function GanadoresPage() {
           const estadoNorm = (b.estado ?? '').toUpperCase()
           const deuda = b.venta?.saldo_pendiente ?? 0
           const imagen = getStorageImageUrl(b.rifa_imagen_url ?? null) ?? b.rifa_imagen_url
-          const esPagada = estadoNorm === 'PAGADA' || estadoNorm === 'CON_PAGO'
           const esAbonada = estadoNorm === 'ABONADA'
-          const esReservada = estadoNorm === 'RESERVADA'
 
           return (
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-              {/* Ticket card */}
-              <div className="flex border-2 border-black bg-white mx-auto overflow-hidden" style={{ maxWidth: `${BOLETA_WIDTH}px`, height: `${BOLETA_DEFAULT_HEIGHT}px` }}>
-                {/* LEFT SIDE */}
-                <div className="flex-shrink-0 p-2 flex flex-col justify-between border-r-2 border-black" style={{ width: `${BOLETA_LEFT_WIDTH}px`, height: `${BOLETA_DEFAULT_HEIGHT}px`, fontFamily: 'Arial, Helvetica, sans-serif' }}>
-                  {/* Conditions */}
-                  <div className="text-[9px] text-black font-semibold leading-snug text-left" style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-                    <p>- Boleta sin pagar no juega</p>
-                    <p>- Válida hasta el día del sorteo</p>
-                    <p>- Juega hasta quedar en poder del público</p>
-                  </div>
-
-                  {/* Estado */}
-                  <div className="flex-1 flex items-center mt-1 mb-1 overflow-hidden">
-                    <div className="w-full text-[9px] text-left space-y-1 text-black leading-snug" style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-                      {/* Badge */}
-                      <div className={`w-full py-1 text-center font-extrabold text-[11px] ${
-                        esPagada ? 'bg-green-700 text-white' :
-                        esAbonada ? 'bg-orange-400 text-black' :
-                        esReservada ? 'bg-blue-600 text-white' :
-                        'bg-slate-200 text-black'
-                      }`} style={{ letterSpacing: '0.5px' }}>
-                        {esPagada ? 'PAGADA' : esAbonada ? 'ABONADA' : estadoNorm}
-                      </div>
-
-                      {/* Deuda (only for abonada) */}
-                      {esAbonada && deuda > 0 && (
-                        <p className="font-extrabold">Deuda: ${deuda.toLocaleString('es-CO')}</p>
-                      )}
-
-                      {/* Client name — NO cedula, NO teléfono */}
-                      <p className="font-semibold">A nombre de:</p>
-                      <p>{b.cliente_nombre ?? '—'}</p>
-                    </div>
-                  </div>
-
-                  {/* Nota */}
-                  {b.nota && (
-                    <div className="text-center text-[8px] italic text-slate-600" style={{ maxHeight: '24px', overflow: 'hidden', lineHeight: '10px' }}>
-                      {b.nota}
-                    </div>
-                  )}
-
-                  {/* Number + Price */}
-                  <div className="text-center mt-1">
-                    <div className="text-lg font-extrabold text-black leading-tight">
-                      #{b.numero.toString().padStart(4, '0')}
-                    </div>
-                    {typeof b.precio_boleta === 'number' && b.precio_boleta > 0 && (
-                      <div className="text-[11px] font-bold text-black leading-snug">
-                        ${b.precio_boleta.toLocaleString('es-CO')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* RIGHT SIDE — Rifa Image */}
-                <div className="flex-shrink-0 h-full" style={{ width: `${BOLETA_RIGHT_WIDTH}px` }}>
-                  {imagen ? (
-                    <img src={imagen} alt={b.rifa_nombre} className="block w-full h-full" style={{ objectFit: 'fill' }} crossOrigin="anonymous" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                      <span className="text-slate-400 text-sm">{b.rifa_nombre}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="rounded-2xl border border-[#3a3220] shadow-sm overflow-hidden bg-[#0a0a0a] p-4">
+              <BoletaTicket
+                qrUrl=""
+                barcode=""
+                numero={b.numero}
+                imagenUrl={imagen}
+                rifaNombre={b.rifa_nombre ?? 'Rifa'}
+                estado={b.estado}
+                clienteInfo={b.cliente_nombre ? { nombre: b.cliente_nombre } : null}
+                deuda={esAbonada ? deuda : null}
+                precio={b.precio_boleta}
+                nota={b.nota}
+                hideQr
+                hideIdentificacion
+              />
             </div>
           )
         })()}
@@ -376,36 +317,17 @@ export default function GanadoresPage() {
           return (
           <div className="space-y-6">
             {/* Ticket preview */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-              <div className="flex border-2 border-black bg-white mx-auto overflow-hidden" style={{ maxWidth: `${BOLETA_WIDTH}px`, height: `${BOLETA_DEFAULT_HEIGHT}px` }}>
-                <div className="flex-shrink-0 p-2 flex flex-col justify-between border-r-2 border-black" style={{ width: `${BOLETA_LEFT_WIDTH}px`, height: `${BOLETA_DEFAULT_HEIGHT}px`, fontFamily: 'Arial, Helvetica, sans-serif' }}>
-                  <div className="text-[9px] text-black font-semibold leading-snug text-left" style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-                    <p>- Boleta sin pagar no juega</p>
-                    <p>- Válida hasta el día del sorteo</p>
-                    <p>- Juega hasta quedar en poder del público</p>
-                  </div>
-                  <div className="flex-1 flex items-center mt-1 mb-1">
-                    <div className="w-full text-[9px] text-left space-y-1 text-black leading-snug" style={{ wordSpacing: '3px', letterSpacing: '0.6px' }}>
-                      <div className="w-full py-1 text-center font-extrabold text-[11px] bg-emerald-300 text-black" style={{ letterSpacing: '0.5px' }}>DISPONIBLE</div>
-                    </div>
-                  </div>
-                  <div className="text-center mt-1">
-                    <div className="text-lg font-extrabold text-black leading-tight">#{b.numero.toString().padStart(4, '0')}</div>
-                    {typeof b.precio_boleta === 'number' && b.precio_boleta > 0 && (
-                      <div className="text-[11px] font-bold text-black leading-snug">${b.precio_boleta.toLocaleString('es-CO')}</div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-shrink-0 h-full" style={{ width: `${BOLETA_RIGHT_WIDTH}px` }}>
-                  {imagen ? (
-                    <img src={imagen} alt={b.rifa_nombre} className="block w-full h-full" style={{ objectFit: 'fill' }} crossOrigin="anonymous" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                      <span className="text-slate-400 text-sm">{b.rifa_nombre}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="rounded-2xl border border-[#3a3220] shadow-sm overflow-hidden bg-[#0a0a0a] p-4">
+              <BoletaTicket
+                qrUrl=""
+                barcode=""
+                numero={b.numero}
+                imagenUrl={imagen}
+                rifaNombre={b.rifa_nombre ?? 'Rifa'}
+                estado="DISPONIBLE"
+                precio={b.precio_boleta}
+                hideQr
+              />
             </div>
 
             {/* Form */}

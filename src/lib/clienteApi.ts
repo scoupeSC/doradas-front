@@ -23,7 +23,7 @@ class ClienteApiService {
   private async fetchWithTimeout(
     input: string,
     init: RequestInit = {},
-    timeoutMs = 30000
+    timeoutMs = 60000
   ): Promise<Response> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)

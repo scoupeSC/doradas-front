@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const analyticsApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://rifas-backend-production.up.railway.app',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
   timeout: 30000,
 });
 

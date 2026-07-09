@@ -7,7 +7,7 @@ const IMAGE_EXT = /\.(jpe?g|png|gif|webp)(\?|#|$)/i
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ||
-  'https://rifas-backend-production.up.railway.app'
+  'http://localhost:3000'
 
 export function getStorageImageUrl(url: string | null | undefined): string | null {
   if (!url || typeof url !== 'string' || !url.trim()) return null

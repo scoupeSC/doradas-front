@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api'
 import {
   ApiResponse,
   BoletaDisponible,
@@ -17,8 +18,7 @@ import {
 } from '@/types/ventas'
 
 class VentasApiService {
-  private baseUrl =
-    process.env.NEXT_PUBLIC_API_URL || 'https://rifas-backend-production.up.railway.app/api'
+  private baseUrl = `${API_BASE_URL}/api`
 
   private async request<T>(
     endpoint: string,
@@ -41,7 +41,8 @@ class VentasApiService {
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
-      headers
+      headers,
+      signal: AbortSignal.timeout(60000),
     })
 
     let data
@@ -55,15 +56,25 @@ class VentasApiService {
     }
 
     if (!response.ok) {
-      // Show detailed validation errors if available
       let serverMessage =
         data?.message || data?.error || data?.errors || response.statusText
+
+      if (response.status === 423 || data?.error === 'SISTEMA_EN_PAUSA') {
+        serverMessage =
+          'El sistema está en pausa. Ve a Rifas y reactiva la rifa (estado ACTIVA) para poder vender boletas.'
+      }
+
       if (data?.details && Array.isArray(data.details)) {
         const fieldErrors = data.details.map((d: any) => `${d.field}: ${d.message}`).join('; ')
         serverMessage = `${serverMessage} (${fieldErrors})`
         console.error('[VentasAPI] Validation details:', data.details)
       }
-      console.error('[VentasAPI] Request failed:', { endpoint, status: response.status, data })
+      console.error('[VentasAPI] Request failed:', {
+        url: `${this.baseUrl}${endpoint}`,
+        endpoint,
+        status: response.status,
+        data,
+      })
       const error = new Error(
         `API Error ${response.status}: ${serverMessage}`
       ) as any
@@ -77,7 +88,7 @@ class VentasApiService {
   // ---------------- BOLETAS ----------------
 
   async getBoletasDisponibles(rifaId: string) {
-    return this.request<any[]>(`/boletas/rifa/${rifaId}`)
+    return this.request<any[]>(`/boletas/rifa/${rifaId}/disponibles`)
   }
 
   async bloquearBoleta(boletaId: string, tiempoBloqueo = 15) {

@@ -117,8 +117,8 @@ export default function AnalyticsDashboard({ rifas, scope = 'global', title, esS
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900">
-      <header className="bg-white shadow-sm border-b border-slate-200">
+    <div className="app-shell">
+      <header className="app-header sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
@@ -131,7 +131,7 @@ export default function AnalyticsDashboard({ rifas, scope = 'global', title, esS
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
-              <h1 className="text-2xl font-light text-slate-900">{headerTitle}</h1>
+              <h1 className="text-2xl font-light text-neutral-100">{headerTitle}</h1>
             </div>
           </div>
         </div>

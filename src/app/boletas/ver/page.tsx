@@ -104,9 +104,8 @@ export default function VerBoletasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      {/* Header mejorado visualmente */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200">
+    <div className="app-shell">
+      <header className="app-header sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-4">
@@ -118,8 +117,8 @@ export default function VerBoletasPage() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               </button>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 leading-none">Ver Boletas</h1>
-                <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">Panel de Control</p>
+                <h1 className="text-xl font-bold text-neutral-100 leading-none">Ver Boletas</h1>
+                <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider font-semibold">Panel de Control</p>
               </div>
             </div>
             <button 

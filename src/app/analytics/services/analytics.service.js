@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://rifas-backend-production.up.railway.app';
+import { API_BASE_URL } from '@/config/api';
 
 /**
  * scope:
@@ -27,7 +25,6 @@ export const getReporteRifa = async (
     params.fechaFin = fechaFin;
   }
 
-  // Filtros exclusivos de SUPER_ADMIN (el backend los ignora para otros roles)
   if (scope === 'global') {
     if (extraFilters.vendedorId) params.vendedorId = extraFilters.vendedorId;
     if (extraFilters.filtroRol) params.filtroRol = extraFilters.filtroRol;
@@ -35,16 +32,11 @@ export const getReporteRifa = async (
 
   const token = localStorage.getItem('token');
 
-  const response = await axios.get(
-    `${buildBase(scope)}/${rifaId}`,
-    {
-      params,
-      timeout: 30000,
-      headers: token
-        ? { Authorization: `Bearer ${token}` }
-        : {}
-    }
-  );
+  const response = await axios.get(`${buildBase(scope)}/${rifaId}`, {
+    params,
+    timeout: 30000,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 
   return response.data;
 };
@@ -59,9 +51,6 @@ export const getVentasGeneral = async (
   maybeScope,
   extraFilters = {}
 ) => {
-  // Compatibilidad: el 6º arg histórico era `filters` (objeto). Ahora también
-  // aceptamos directamente un string scope. El 7º arg explícito (maybeScope)
-  // siempre gana si viene definido.
   let scope = 'global';
   if (typeof filtersOrScope === 'string') {
     scope = filtersOrScope;
@@ -83,16 +72,11 @@ export const getVentasGeneral = async (
 
   const token = localStorage.getItem('token');
 
-  const response = await axios.get(
-    `${buildBase(scope)}/${rifaId}/ventas`,
-    {
-      params,
-      timeout: 30000,
-      headers: token
-        ? { Authorization: `Bearer ${token}` }
-        : {}
-    }
-  );
+  const response = await axios.get(`${buildBase(scope)}/${rifaId}/ventas`, {
+    params,
+    timeout: 30000,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 
   return response.data;
 };

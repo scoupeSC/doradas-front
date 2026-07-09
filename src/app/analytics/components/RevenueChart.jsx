@@ -16,8 +16,15 @@ export default function RevenueChart({ serie }) {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: { grid: { display: false } },
-              y: { border: { dash: [4, 4] }, grid: { color: '#f1f5f9' } } // Líneas sutiles slate-100
+              x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8' },
+              },
+              y: {
+                border: { dash: [4, 4], color: '#2d3a52' },
+                grid: { color: '#212d45' },
+                ticks: { color: '#94a3b8' },
+              }
             }
           }}
           data={{
@@ -25,11 +32,11 @@ export default function RevenueChart({ serie }) {
             datasets: [{
               label: 'Recaudo',
               data: serie.map(s => Number(s.total)),
-              borderColor: '#2563eb', // blue-600
-              backgroundColor: 'rgba(37,99,235,0.05)',
+              borderColor: '#60a5fa',
+              backgroundColor: 'rgba(96,165,250,0.12)',
               borderWidth: 2,
-              pointBackgroundColor: '#ffffff',
-              pointBorderColor: '#2563eb',
+              pointBackgroundColor: '#111827',
+              pointBorderColor: '#60a5fa',
               pointBorderWidth: 2,
               fill: true,
               tension: 0.4

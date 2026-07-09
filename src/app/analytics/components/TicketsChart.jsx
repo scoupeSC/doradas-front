@@ -30,7 +30,7 @@ export default function TicketsChart({ resumen, boletasPeriodo, hayFiltro }) {
 
   const colors = usePeriodo
     ? ['#34d399', '#fbbf24', '#818cf8', '#f87171']
-    : ['#cbd5e1', '#fbbf24', '#818cf8', '#34d399', '#f87171'];
+    : ['#475569', '#fbbf24', '#818cf8', '#34d399', '#f87171'];
 
   const totalPeriodo = usePeriodo
     ? data.reduce((s, v) => s + Number(v), 0)
@@ -65,7 +65,7 @@ export default function TicketsChart({ resumen, boletasPeriodo, hayFiltro }) {
               plugins: {
                 legend: { 
                   position: 'right',
-                  labels: { color: '#64748b', font: { family: 'inherit' }, usePointStyle: true }
+                  labels: { color: '#94a3b8', font: { family: 'inherit' }, usePointStyle: true }
                 }
               }
             }}

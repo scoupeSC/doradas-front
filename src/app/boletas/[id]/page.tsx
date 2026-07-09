@@ -127,8 +127,8 @@ export default function BoletaDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <header className="bg-white shadow-sm border-b border-slate-200">
+    <div className="app-shell">
+      <header className="app-header sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -138,7 +138,7 @@ export default function BoletaDetailPage() {
               >
                 ← Boletas
               </button>
-              <h1 className="text-2xl font-light text-slate-900">Detalles de Boleta</h1>
+              <h1 className="text-2xl font-light text-neutral-100">Detalles de Boleta</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600">

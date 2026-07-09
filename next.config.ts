@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Si tu API está en otro puerto (ej. 4000), define NEXT_PUBLIC_API_URL en .env.local
-const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://rifas-backend-production.up.railway.app/api";
+const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 const backendOrigin = apiBase.replace(/\/api\/?$/, "");
 
 const nextConfig: NextConfig = {
