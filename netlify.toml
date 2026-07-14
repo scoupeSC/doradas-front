@@ -1,0 +1,13 @@
+# Netlify + Next.js (App Router)
+# Importante: en Site settings → Build & deploy → Publish directory
+# deja el campo VACÍO (no uses "out", "dist", ".next" ni "build").
+
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
