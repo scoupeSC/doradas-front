@@ -127,8 +127,12 @@ export default function BoletaDetail({ boleta, onPrint }: BoletaDetailProps) {
           
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-slate-600">Número:</span>
-              <span className="text-sm font-medium text-slate-900">#{boleta.numero.toString().padStart(4, '0')}</span>
+              <span className="text-sm text-slate-600">Número{boleta.numeros && boleta.numeros.length > 1 ? 's' : ''}:</span>
+              <span className="text-sm font-medium text-slate-900">
+                {boleta.numeros && boleta.numeros.length > 0
+                  ? boleta.numeros.map((n) => `#${String(n).padStart(4, '0')}`).join(' · ')
+                  : `#${boleta.numero.toString().padStart(4, '0')}`}
+              </span>
             </div>
             
             <div className="flex justify-between">
