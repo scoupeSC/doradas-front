@@ -163,6 +163,7 @@ function buildReciboData(
     ventaId: venta.id,
     boletas: (venta.boletas || []).map((b) => ({
       numero: b.numero,
+      numeros: Array.isArray((b as any).numeros) ? (b as any).numeros.map(Number) : [Number(b.numero)],
       estado: b.estado,
       precioBoleta: b.precio_boleta || 0,
       totalPagado: b.total_pagado_boleta || 0,

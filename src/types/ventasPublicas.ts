@@ -11,10 +11,13 @@ export interface ClientePublico {
 export interface BoletaPublica {
   boleta_id: string
   numero: number
+  numeros?: number[]
   estado: string
   precio_boleta?: number
   total_pagado_boleta?: number
   saldo_pendiente_boleta?: number
+  qr_url?: string
+  imagen_url?: string
 }
 
 export interface AbonoPublico {

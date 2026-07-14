@@ -8,6 +8,7 @@ import { generarWhatsAppChatLink } from '@/utils/telefono'
 import { WHATSAPP_VENTAS_ACTIVO } from '@/config/features'
 import BoletaTicket from '@/components/BoletaTicket'
 import ResponsiveBoletaWrapper from '@/components/ResponsiveBoletaWrapper'
+import { formatBoletaNumeros, normalizeNumeros } from '@/utils/formatBoletaNumeros'
 
 interface DialogoReservaProps {
   isOpen: boolean
@@ -248,7 +249,9 @@ export default function DialogoReserva({
                 {boletasRes.map((b: any) => (
                   <div key={b.id} className="border border-slate-200 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-slate-900 text-sm">Boleta #{b.numero.toString().padStart(4, '0')}</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        Boleta {formatBoletaNumeros(b.numeros, b.numero)}
+                      </span>
                       <button
                         onClick={() => descargarBoletaReserva(b.numero, cliente.identificacion || '', `reserva-boleta-${b.id}`)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium"
@@ -264,6 +267,7 @@ export default function DialogoReserva({
                           qrUrl={b.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=boleta-${b.id}`}
                           barcode=""
                           numero={b.numero}
+                          numeros={normalizeNumeros(b.numeros, b.numero)}
                           imagenUrl={b.imagen_url}
                           rifaNombre={rifaNombre || ''}
                           estado="RESERVADA"
@@ -371,9 +375,11 @@ export default function DialogoReserva({
             <h3 className="font-medium text-blue-900 mb-3">Boletas a Reservar</h3>
             <div className="space-y-2">
               {boletas.slice(0, 3).map((boleta) => (
-                <div key={boleta.id} className="flex justify-between text-sm">
-                  <span className="text-blue-800">#{boleta.numero.toString().padStart(4, '0')}</span>
-                  <span className="text-blue-600 font-medium">${precioBoleta.toLocaleString('es-CO')}</span>
+                <div key={boleta.id} className="flex justify-between text-sm gap-2">
+                  <span className="text-blue-800 font-semibold">
+                    {formatBoletaNumeros((boleta as any).numeros, boleta.numero)}
+                  </span>
+                  <span className="text-blue-600 font-medium shrink-0">${precioBoleta.toLocaleString('es-CO')}</span>
                 </div>
               ))}
               {boletas.length > 3 && (

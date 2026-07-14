@@ -229,6 +229,7 @@ export default function MisBoletasPage() {
                           qrUrl={boleta.qr_url}
                           barcode={boleta.barcode}
                           numero={boleta.numero}
+                          numeros={(boleta as any).numeros}
                           imagenUrl={boleta.imagen_url}
                           rifaNombre={rifa.rifa_nombre}
                           estado={boleta.estado}

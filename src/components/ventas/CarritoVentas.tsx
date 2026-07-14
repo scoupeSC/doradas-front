@@ -181,6 +181,7 @@ export default function CarritoVentas({
           const saldoB = precioBoleta - abonoBoleta
           return {
             numero: b.numero,
+            numeros: Array.isArray(b.numeros) ? b.numeros.map(Number) : [Number(b.numero)],
             estado: abonoBoleta >= precioBoleta ? 'PAGADA' : abonoBoleta > 0 ? 'ABONADA' : 'PENDIENTE',
             precioBoleta: precioBoleta,
             totalPagado: abonoBoleta,
@@ -459,7 +460,7 @@ export default function CarritoVentas({
             >
               <div className="flex items-center space-x-4">
                 <div className="font-medium text-slate-900">
-                  #{boleta.numero.toString().padStart(4, '0')}
+                  {formatBoletaNumeros(boleta.numeros, boleta.numero)}
                 </div>
                 <div className="text-sm text-slate-600">
                   ${precioBoleta.toLocaleString('es-CO')}
@@ -572,8 +573,10 @@ export default function CarritoVentas({
                   key={boleta.id}
                   className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg"
                 >
-                  <div className="flex-shrink-0 w-16">
-                    <div className="text-sm font-bold text-slate-800">#{boleta.numero.toString().padStart(4, '0')}</div>
+                  <div className="flex-shrink-0 min-w-[5.5rem]">
+                    <div className="text-sm font-bold text-slate-800 leading-tight">
+                      {formatBoletaNumeros(boleta.numeros, boleta.numero)}
+                    </div>
                     <div className="text-[10px] text-slate-500">${precioBoleta.toLocaleString('es-CO')}</div>
                   </div>
                   <div className="flex-1">

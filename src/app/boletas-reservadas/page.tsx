@@ -7,6 +7,7 @@ import { ventasPublicasApi } from '@/lib/ventasPublicasApi'
 interface BoletaReservada {
   boleta_id: string
   numero: number
+  numeros?: number[]
   estado: string
   bloqueo_hasta: string | null
   reserva_token: string | null
@@ -113,7 +114,12 @@ export default function BoletasReservadasPage() {
   // Obtener rifas únicas para el filtro
   const rifasUnicas = Array.from(new Set(boletas.map(b => b.rifa_nombre))).sort()
 
-  const formatNumeroBoleta = (numero: number) => String(numero).padStart(4, '0')
+  const formatNumeroBoleta = (numero: number, numeros?: number[]) => {
+    if (Array.isArray(numeros) && numeros.length > 0) {
+      return numeros.map((n) => String(n).padStart(4, '0')).join(' · ')
+    }
+    return String(numero).padStart(4, '0')
+  }
 
   // Filtrar boletas
   const boletasFiltradas = boletas.filter(b => {
@@ -322,7 +328,7 @@ export default function BoletasReservadasPage() {
                       {/* Número de boleta */}
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-mono font-semibold text-sm">
-                          #{String(boleta.numero).padStart(4, '0')}
+                          #{formatNumeroBoleta(boleta.numero, (boleta as any).numeros)}
                         </span>
                       </td>
 
@@ -408,7 +414,7 @@ export default function BoletasReservadasPage() {
                             onClick={() => setConfirmDialog({
                               tipo: 'boleta',
                               id: boleta.boleta_id,
-                              mensaje: `¿Liberar la boleta #${String(boleta.numero).padStart(4, '0')}? Quedará disponible para la venta nuevamente.`
+                              mensaje: `¿Liberar la boleta #${formatNumeroBoleta(boleta.numero, (boleta as any).numeros)}? Quedará disponible para la venta nuevamente.`
                             })}
                             disabled={liberando === boleta.boleta_id}
                             className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

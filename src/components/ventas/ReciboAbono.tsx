@@ -3,6 +3,7 @@
 import { useRef } from 'react'
 import { generarWhatsAppChatLink } from '@/utils/telefono'
 import { WHATSAPP_VENTAS_ACTIVO } from '@/config/features'
+import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
 
 // ─── Datos que necesita el recibo ───────────────────────────────────
 export interface ReciboAbonoData {
@@ -35,6 +36,7 @@ export interface ReciboAbonoData {
   // Boletas (con su estado actualizado)
   boletas: Array<{
     numero: number
+    numeros?: number[]
     estado: string
     precioBoleta?: number
     totalPagado?: number
@@ -375,7 +377,9 @@ export default function ReciboAbono({ data, onClose, onWhatsApp }: ReciboAbonoPr
                         pagada ? 'bg-green-50' : abonada ? 'bg-yellow-50' : 'bg-slate-50'
                       }`}
                     >
-                      <span className="font-bold text-slate-800">#{b.numero.toString().padStart(4, '0')}</span>
+                      <span className="font-bold text-slate-800">
+                        {formatBoletaNumeros(b.numeros, b.numero)}
+                      </span>
                       <span className={`font-semibold ${
                         pagada ? 'text-green-700' : abonada ? 'text-yellow-700' : 'text-slate-500'
                       }`}>

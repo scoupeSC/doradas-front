@@ -8,6 +8,11 @@ import ReciboAbono, { ReciboAbonoData } from '@/components/ventas/ReciboAbono'
 import { formatearInputPesos, parsearInputPesos } from '@/utils/formatPesos'
 import { normalizarTelefono } from '@/utils/telefono'
 import { getMediosDePagoTexto } from '@/config/paymentInfo'
+import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+
+function labelBoleta(b: { numero: number; numeros?: number[] }) {
+  return formatBoletaNumeros(b.numeros, b.numero)
+}
 
 interface DetalleVentaPublicaProps {
   venta: VentaPublicaDetalle
@@ -321,7 +326,7 @@ export default function DetalleVentaPublica({
     for (const { boletaId, monto } of abonosARegistrar) {
       const boleta = venta.boletas.find((b) => b.boleta_id === boletaId)
       if (boleta && typeof boleta.saldo_pendiente_boleta === 'number' && monto > boleta.saldo_pendiente_boleta) {
-        setError(`El monto para boleta #${boleta.numero.toString().padStart(4, '0')} excede su saldo pendiente`)
+        setError(`El monto para boleta ${labelBoleta(boleta)} excede su saldo pendiente`)
         return
       }
     }
@@ -428,7 +433,7 @@ export default function DetalleVentaPublica({
     if (!telefonoCompleto || telefonoCompleto.length < 7) return null
 
     const nombre = venta.cliente_nombre || 'Cliente'
-    const numeros = venta.boletas.map(b => `#${b.numero.toString().padStart(4, '0')}`).join(', ')
+    const numeros = venta.boletas.map((b) => labelBoleta(b)).join(', ')
 
     // Calcular estado post-abono (los datos de la venta aún no se refrescaron, calcular manualmente)
     const nuevoPagado = venta.abono_total + montoAbonado
@@ -442,7 +447,7 @@ export default function DetalleVentaPublica({
       const estado = pagado >= precio ? '✅ Pagada'
         : pagado > 0 ? `💰 Abonada ($${pagado.toLocaleString('es-CO')} de $${precio.toLocaleString('es-CO')})`
         : '🔒 Pendiente'
-      return `  #${b.numero.toString().padStart(4, '0')}: ${estado}`
+      return `  ${labelBoleta(b)}: ${estado}`
     }).join('\n')
 
     let mensaje = ''
@@ -475,7 +480,7 @@ export default function DetalleVentaPublica({
   const generarWhatsAppLink = () => {
     const telefonoCompleto = normalizarTelefono(venta.cliente_telefono)
     
-    const numeros = venta.boletas.map(b => `#${b.numero.toString().padStart(4, '0')}`).join(', ')
+    const numeros = venta.boletas.map((b) => labelBoleta(b)).join(', ')
     
     const mediosPago = getMediosDePagoTexto()
     let mensaje = ''
@@ -686,7 +691,7 @@ export default function DetalleVentaPublica({
                       : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
                   }`}
                 >
-                  <div className="text-xl font-bold text-slate-800">#{boleta.numero.toString().padStart(4, '0')}</div>
+                  <div className="text-xl font-bold text-slate-800">{labelBoleta(boleta)}</div>
                   <span
                     className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${getEstadoBadgeColor(boleta.estado)}`}
                   >
@@ -1033,7 +1038,7 @@ export default function DetalleVentaPublica({
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-800">
-                            #{boleta.numero.toString().padStart(4, '0')}
+                            {labelBoleta(boleta)}
                           </span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getEstadoBadgeColor(boleta.estado)}`}>
                             {boleta.estado}

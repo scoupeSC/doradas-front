@@ -8,10 +8,12 @@ import { getStorageImageUrl } from '@/lib/storageImageUrl'
 import BoletaTicket from '@/components/BoletaTicket'
 import ResponsiveBoletaWrapper from '@/components/ResponsiveBoletaWrapper'
 import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
+import { formatBoletaNumeros, normalizeNumeros } from '@/utils/formatBoletaNumeros'
 
 interface BoletaInfo {
   id: string
   numero: number
+  numeros?: number[]
   estado: string
   precio_boleta?: number
   total_pagado_boleta?: number
@@ -147,9 +149,9 @@ export default function VentasBoletasPage() {
                 key={boleta.id}
                 className="bg-white rounded-xl shadow-sm border border-slate-200 p-4"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 gap-2">
                   <span className="text-lg font-bold text-slate-800">
-                    Boleta #{boleta.numero.toString().padStart(4, '0')}
+                    Boleta {formatBoletaNumeros(boleta.numeros, boleta.numero)}
                   </span>
                   <div className="flex gap-2">
                     <button
@@ -179,6 +181,7 @@ export default function VentasBoletasPage() {
                       qrUrl={boleta.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=boleta-${boleta.id}`}
                       barcode=""
                       numero={boleta.numero}
+                      numeros={normalizeNumeros(boleta.numeros, boleta.numero)}
                       imagenUrl={boleta.imagen_url}
                       rifaNombre={rifaNombre}
                       estado={boleta.estado}
