@@ -13,7 +13,6 @@ import {
   BOLETA_LEFT_STYLE,
   BOLETA_NUMERO_STYLE,
   BOLETA_PRECIO_STYLE,
-  BOLETA_RULES_STYLE,
   BOLETA_TICKET_STYLE,
 } from '@/constants/boletaTheme'
 import {
@@ -284,15 +283,6 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
         const tieneCliente = Boolean(boleta.cliente_info && (boleta.cliente_info.nombre || boleta.cliente_info.identificacion))
         const precioNum = rifaInfo?.precio_boleta ? Number(rifaInfo.precio_boleta) : null
 
-        let diasCaducidad: number | null = null
-        if (boleta.bloqueo_hasta) {
-          try {
-            const hasta = new Date(boleta.bloqueo_hasta)
-            const diffMs = hasta.getTime() - Date.now()
-            diasCaducidad = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
-          } catch { /* ignore */ }
-        }
-
         const reservadaHastaFmt = boleta.bloqueo_hasta ? (() => {
           try {
             const dt = new Date(boleta.bloqueo_hasta)
@@ -306,27 +296,24 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
         const esPagada = ['CON_PAGO', 'PAGADA', 'PAGADO', 'VENDIDA'].includes(estadoNorm) && tieneCliente
         const esAbonada = estadoNorm === 'ABONADA'
 
+        const labelCss = 'font-size:7px;letter-spacing:0.08em;text-transform:uppercase;color:#a3a3a3;margin-top:4px;text-align:center;width:100%;'
         let estadoHTML = ''
         if (esCancelada) {
           estadoHTML = `<div style="${BOLETA_BADGE_STYLES.cancelada}">Boleta cancelada</div><p style="${BOLETA_BODY_TEXT};margin-top:4px;color:#a3a3a3;">Esta boleta no tiene validez</p>`
         } else if (esReservada && tieneCliente) {
-          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.reservada}">Reservada</div><p style="font-size:7px;letter-spacing:0.08em;text-transform:uppercase;color:#a3a3a3;margin-top:4px;">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;margin-top:4px;">Hasta: ${reservadaHastaFmt ?? '—'}</p>`
+          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.reservada}">Reservada</div><p style="${labelCss}">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;margin-top:4px;">Hasta: ${reservadaHastaFmt ?? '—'}</p>`
         } else if (esReservada && !tieneCliente) {
           estadoHTML = `<div style="${BOLETA_BADGE_STYLES.bloqueada}">Bloqueada</div><p style="${BOLETA_BODY_TEXT};margin-top:4px;color:#a3a3a3;">Boleta bloqueada momentáneamente</p>`
         } else if (esPagada) {
-          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.pagada}">Pagada</div><p style="font-size:7px;letter-spacing:0.08em;text-transform:uppercase;color:#a3a3a3;margin-top:4px;">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p>`
+          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.pagada}">Pagada</div><p style="${labelCss}">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p>`
         } else if (esAbonada) {
           const fin = financieroMap[boleta.id]
           const abonado = fin ? fin.total_pagado : 0
           const saldo = fin ? fin.saldo_pendiente : (precioNum ? precioNum : 0)
-          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.abonada}">Abonada</div><p style="${BOLETA_BODY_TEXT};color:#d4af37;font-weight:700;margin-top:4px;">Deuda: $${saldo.toLocaleString('es-CO')}</p><p style="font-size:7px;letter-spacing:0.08em;text-transform:uppercase;color:#a3a3a3;margin-top:4px;">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p>${fin ? `<p style="${BOLETA_BODY_TEXT};color:#6ee7b7;font-weight:600;">Abonado: $${abonado.toLocaleString('es-CO')}</p>` : ''}`
+          estadoHTML = `<div style="${BOLETA_BADGE_STYLES.abonada}">Abonada</div><p style="${BOLETA_BODY_TEXT};color:#d4af37;font-weight:700;margin-top:4px;">Deuda: $${saldo.toLocaleString('es-CO')}</p><p style="${labelCss}">A nombre de</p><p style="${BOLETA_BODY_TEXT};color:#f5f5f5;">${boleta.cliente_info?.nombre ?? '—'}</p><p style="${BOLETA_BODY_TEXT};color:#a3a3a3;">CC. ${boleta.cliente_info?.identificacion ?? '—'}</p>${fin ? `<p style="${BOLETA_BODY_TEXT};color:#6ee7b7;font-weight:600;">Abonado: $${abonado.toLocaleString('es-CO')}</p>` : ''}`
         } else {
           estadoHTML = `<div style="${BOLETA_BADGE_STYLES.disponible}">Disponible</div>`
         }
-
-        const caducidadText = diasCaducidad !== null
-          ? `- ${diasCaducidad} días de caducidad`
-          : '- Válida hasta el día del sorteo'
 
         const qrSrc = boleta.qr_url || ''
         const numsList = normalizeNumeros(boleta.numeros, boleta.numero)
@@ -344,19 +331,16 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
         container.innerHTML = `
           <div class="boleta-ticket" style="${BOLETA_TICKET_STYLE}width:${BOLETA_WIDTH}px;height:${ticketHeight}px;">
             <div style="${BOLETA_LEFT_STYLE}width:${BOLETA_LEFT_WIDTH}px;height:${ticketHeight}px;">
-              <div style="${BOLETA_RULES_STYLE}">
-                <p>Boleta sin pagar no juega</p>
-                <p>${caducidadText.replace(/^- /, '')}</p>
-                <p>Juega hasta quedar en poder del público</p>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;">
+                <div style="${BOLETA_BODY_TEXT}">
+                  ${estadoHTML}
+                </div>
               </div>
-              <div style="${BOLETA_BODY_TEXT}">
-                ${estadoHTML}
-              </div>
-              <div style="display:flex;justify-content:center;margin-bottom:4px;">
+              <div style="display:flex;justify-content:center;margin-bottom:4px;width:100%;">
                 <img src="${qrSrc}" style="width:72px;height:72px;padding:3px;background:#fff;border-radius:4px;border:1px solid rgba(201,162,39,0.45);" alt="QR" />
               </div>
-              ${(() => { const n = getNotaBoleta(boleta); return n ? `<div style="text-align:center;font-size:8px;font-style:italic;color:#737373;max-height:24px;overflow:hidden;line-height:1.25;">${n}</div>` : ''; })()}
-              <div>
+              ${(() => { const n = getNotaBoleta(boleta); return n ? `<div style="text-align:center;font-size:8px;font-style:italic;color:#737373;max-height:24px;overflow:hidden;line-height:1.25;width:100%;">${n}</div>` : ''; })()}
+              <div style="width:100%;">
                 <div style="${BOLETA_NUMERO_STYLE}">${numsHtml}</div>
                 ${precioNum ? `<div style="${BOLETA_PRECIO_STYLE}">$${precioNum.toLocaleString('es-CO')}</div>` : ''}
               </div>

@@ -3,12 +3,10 @@ export const BOLETA_TICKET_STYLE =
   'display:flex;overflow:hidden;background:linear-gradient(180deg,#0c0c0c 0%,#121212 100%);border:1px solid #3a3220;box-shadow:inset 0 1px 0 rgba(212,175,55,0.12);'
 
 export const BOLETA_LEFT_STYLE =
-  'flex-shrink:0;padding:10px 8px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid rgba(201,162,39,0.22);font-family:var(--font-geist-sans,system-ui,sans-serif);'
+  'flex-shrink:0;padding:10px 8px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;border-right:1px solid rgba(201,162,39,0.22);font-family:var(--font-geist-sans,system-ui,sans-serif);text-align:center;'
 
-export const BOLETA_RULES_STYLE =
-  'font-size:8px;color:#737373;font-weight:500;line-height:1.45;letter-spacing:0.06em;text-transform:uppercase;'
-
-export const BOLETA_BODY_TEXT = 'font-size:9px;color:#d4d4d4;line-height:1.45;text-align:left;'
+export const BOLETA_BODY_TEXT =
+  'font-size:9px;color:#d4d4d4;line-height:1.45;text-align:center;width:100%;display:flex;flex-direction:column;align-items:center;'
 
 export const BOLETA_BADGE_STYLES: Record<string, string> = {
   pagada:

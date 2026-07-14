@@ -93,18 +93,6 @@ export default function BoletaTicket(props: BoletaTicketProps) {
     }
   }
 
-  const diasCaducidad = (() => {
-    if (!reservadaHasta) return null
-    try {
-      const hasta = new Date(reservadaHasta)
-      const ahora = new Date()
-      const diffMs = hasta.getTime() - ahora.getTime()
-      return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
-    } catch {
-      return null
-    }
-  })()
-
   const esReservada = estadoNorm === 'RESERVADA'
   const esCancelada = estadoNorm === 'ANULADA' || estadoNorm === 'CANCELADA'
   const estadoPagadoWords = new Set(['CON_PAGO', 'PAGADA', 'PAGADO', 'VENDIDA'])
@@ -208,16 +196,6 @@ export default function BoletaTicket(props: BoletaTicketProps) {
         className="boleta-ticket__left"
         style={{ width: `${BOLETA_LEFT_WIDTH}px`, height: `${ticketHeight}px` }}
       >
-        <div className="boleta-ticket__rules">
-          <p>Boleta sin pagar no juega</p>
-          {diasCaducidad !== null ? (
-            <p>{diasCaducidad} días de caducidad</p>
-          ) : (
-            <p>Válida hasta el día del sorteo</p>
-          )}
-          <p>Juega hasta quedar en poder del público</p>
-        </div>
-
         <div className="boleta-ticket__content">{renderEstado()}</div>
 
         {!hideQr && (
