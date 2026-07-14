@@ -112,6 +112,7 @@ export default function BoletaTicket(props: BoletaTicketProps) {
     (estadoPagadoWords.has(estadoNorm) || (tieneCliente && deudaNum === 0)) && tieneCliente
   const esAbonada =
     estadoNorm === 'ABONADA' || (tieneCliente && typeof deudaNum === 'number' && deudaNum > 0)
+  const numsDisplay = normalizeNumeros(numeros, numero)
 
   const badge = (label: string, variant: string) => (
     <div className={`boleta-ticket__badge boleta-ticket__badge--${variant}`}>{label}</div>
@@ -228,8 +229,16 @@ export default function BoletaTicket(props: BoletaTicketProps) {
         {nota && <div className="boleta-ticket__nota">{nota}</div>}
 
         <div className="boleta-ticket__footer">
-          <div className="boleta-ticket__numero">
-            {formatBoletaNumeros(normalizeNumeros(numeros, numero))}
+          <div
+            className={`boleta-ticket__numero ${
+              numsDisplay.length > 1 ? 'boleta-ticket__numero--par' : ''
+            }`}
+          >
+            {numsDisplay.map((n) => (
+              <span key={n} className="boleta-ticket__numero-line">
+                #{String(n).padStart(4, '0')}
+              </span>
+            ))}
           </div>
           {typeof precio === 'number' && precio > 0 && (
             <div className="boleta-ticket__precio">${precio.toLocaleString('es-CO')}</div>
@@ -256,7 +265,7 @@ export default function BoletaTicket(props: BoletaTicketProps) {
           <div className="boleta-ticket__right-fallback">
             <div className="text-center">
               <p>{rifaNombre}</p>
-              <p>{formatBoletaNumeros(normalizeNumeros(numeros, numero))}</p>
+              <p>{formatBoletaNumeros(numsDisplay)}</p>
             </div>
           </div>
         )}

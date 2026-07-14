@@ -329,7 +329,11 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
           : '- Válida hasta el día del sorteo'
 
         const qrSrc = boleta.qr_url || ''
-        const numsLabel = formatBoletaNumeros(boleta.numeros, boleta.numero)
+        const numsList = normalizeNumeros(boleta.numeros, boleta.numero)
+        const numsLabel = formatBoletaNumeros(numsList, boleta.numero)
+        const numsHtml = numsList
+          .map((n) => `<span style="display:block;white-space:nowrap;">#${String(n).padStart(4, '0')}</span>`)
+          .join('')
         const numPad = boleta.numero.toString().padStart(4, '0')
 
         // Usar la imagen data URL pre-cargada (sin CORS, instantáneo)
@@ -353,7 +357,7 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
               </div>
               ${(() => { const n = getNotaBoleta(boleta); return n ? `<div style="text-align:center;font-size:8px;font-style:italic;color:#737373;max-height:24px;overflow:hidden;line-height:1.25;">${n}</div>` : ''; })()}
               <div>
-                <div style="${BOLETA_NUMERO_STYLE}">${numsLabel}</div>
+                <div style="${BOLETA_NUMERO_STYLE}">${numsHtml}</div>
                 ${precioNum ? `<div style="${BOLETA_PRECIO_STYLE}">$${precioNum.toLocaleString('es-CO')}</div>` : ''}
               </div>
             </div>

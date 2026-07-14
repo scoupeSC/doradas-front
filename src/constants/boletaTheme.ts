@@ -26,7 +26,7 @@ export const BOLETA_BADGE_STYLES: Record<string, string> = {
 }
 
 export const BOLETA_NUMERO_STYLE =
-  'text-align:center;font-size:20px;font-weight:700;color:#d4af37;letter-spacing:0.12em;font-variant-numeric:tabular-nums;'
+  'text-align:center;font-size:17px;font-weight:700;color:#d4af37;letter-spacing:0.06em;font-variant-numeric:tabular-nums;line-height:1.2;display:flex;flex-direction:column;align-items:center;gap:2px;'
 
 export const BOLETA_PRECIO_STYLE =
   'text-align:center;font-size:11px;font-weight:600;color:#c9a227;letter-spacing:0.04em;'

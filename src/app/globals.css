@@ -587,14 +587,27 @@ tbody tr:hover {
 }
 
 .boleta-ticket__numero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   font-size: 1.25rem;
   font-weight: 700;
   color: #d4af37;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.15;
   word-break: break-word;
   font-family: var(--font-mono);
+}
+
+.boleta-ticket__numero--par {
+  font-size: 1.05rem;
+}
+
+.boleta-ticket__numero-line {
+  display: block;
+  white-space: nowrap;
 }
 
 .boleta-ticket__precio {

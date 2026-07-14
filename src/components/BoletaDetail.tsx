@@ -106,6 +106,7 @@ export default function BoletaDetail({ boleta, onPrint }: BoletaDetailProps) {
             qrUrl={boleta.qr_url}
             barcode={boleta.barcode}
             numero={boleta.numero}
+            numeros={boleta.numeros}
             imagenUrl={(boleta as any).imagen_url ?? (boleta as any).imagenUrl}
             rifaNombre={boleta.rifa_nombre}
             estado={boleta.estado}
