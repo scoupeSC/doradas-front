@@ -141,8 +141,10 @@ export default function BoletaDetailPage() {
               <h1 className="text-2xl font-light text-neutral-100">Detalles de Boleta</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-slate-600">
-                Boleta #{boleta.numero.toString().padStart(4, '0')}
+              <span className="text-sm text-slate-600 font-mono">
+                Boleta {Array.isArray((boleta as any).numeros) && (boleta as any).numeros.length
+                  ? (boleta as any).numeros.map((n: number) => `#${String(n).padStart(4, '0')}`).join(' · ')
+                  : `#${boleta.numero.toString().padStart(4, '0')}`}
               </span>
               <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                 boleta.estado === 'DISPONIBLE' ? 'bg-green-100 text-green-800' :
