@@ -328,6 +328,10 @@ export default function GestionarAbonosPage() {
 
             <ListaVentasPendientes
               clienteId={clienteActivo.id}
+              ventaIdDirecta={
+                // Tras buscar por boleta, abrir directo esa venta (evita lista vacía / un clic menos)
+                clienteDeBoleta && ventaConBoletaId ? ventaConBoletaId : undefined
+              }
               boletaDestacada={boletaBuscadaNum ?? undefined}
               ventaDestacadaId={ventaConBoletaId ?? undefined}
               onAbonoFinalizado={resetBusqueda}
