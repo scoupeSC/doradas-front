@@ -4,8 +4,13 @@ import { useEffect, useState } from 'react'
 import { VentaPublicaListado } from '@/types/ventasPublicas'
 import { ventasPublicasApi } from '@/lib/ventasPublicasApi'
 import { normalizarTelefono } from '@/utils/telefono'
-import { getMediosDePagoBloque } from '@/config/paymentInfo'
-import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import {
+  formatPacha,
+  formatPachasDesdeNumerosPlanos,
+  mensajePagoPendienteVenta,
+  mensajeReservaRecibida,
+  mensajeSaldoPendienteVenta,
+} from '@/utils/whatsappMensajes'
 
 interface ListaVentasPublicasProps {
   onSelectVenta: (ventaId: string) => void
@@ -118,31 +123,42 @@ export default function ListaVentasPublicas({
    */
   const generarWhatsAppLink = (venta: VentaPublicaListado) => {
     const telefonoCompleto = normalizarTelefono(venta.cliente_telefono)
-    
-    // Formatear pacha (ambos números) por boleta
-    const boletasList = (venta as any).boletas
-    const numeros =
-      Array.isArray(boletasList) && boletasList.length > 0
-        ? boletasList.map((b: any) => formatBoletaNumeros(b.numeros, b.numero)).join(', ')
-        : venta.numeros_boletas && venta.numeros_boletas.length > 0
-          ? venta.numeros_boletas.map((n) => `#${String(n).padStart(4, '0')}`).join(', ')
-          : `${venta.cantidad_boletas} boleta(s)`
-    
-    const mediosDePago = getMediosDePagoBloque()
 
-    const linkBoletas = `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`
+    // Siempre pacha (ambos números) por boleta
+    const boletasList = (venta as any).boletas
+    const pachas =
+      Array.isArray(boletasList) && boletasList.length > 0
+        ? boletasList.map((b: any) => formatPacha(b.numeros, b.numero)).join(', ')
+        : venta.numeros_boletas && venta.numeros_boletas.length > 0
+          ? formatPachasDesdeNumerosPlanos(venta.numeros_boletas.map(Number), venta.cantidad_boletas)
+          : `${venta.cantidad_boletas} pacha(s)`
 
     let mensaje = ''
 
-    const infoAnticipados = `\n\n🏆 *PARA PARTICIPAR EN LOS PREMIOS:*\n✅ *Anticipados:* mínimo $90.000 abonados todos los sábados por $2.000.000 acumulables\n🎁 *Premio mayor (20 de junio):* boleta pagada al 100%`
-
     if (venta.estado_venta === 'SIN_REVISAR') {
-      mensaje = `Hola ${venta.cliente_nombre}, recibimos tu reserva en la rifa *${venta.rifa_nombre}* para las boletas *${numeros}*, por un total de *${formatoMoneda(venta.monto_total)}*.${infoAnticipados}${mediosDePago}${linkBoletas}\n\nRecuerda enviar el comprobante de pago por este medio. ¡Gracias! 🙏`
+      mensaje = mensajeReservaRecibida({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        montoTotal: venta.monto_total,
+      })
     } else if (venta.estado_venta === 'ABONADA') {
       const saldo = venta.monto_total - venta.abono_total
-      mensaje = `Hola ${venta.cliente_nombre}, te recordamos que tienes un saldo pendiente de *${formatoMoneda(saldo)}* en la rifa *${venta.rifa_nombre}* (boletas: *${numeros}*). Total: ${formatoMoneda(venta.monto_total)}, Abonado: ${formatoMoneda(venta.abono_total)}.${mediosDePago}${linkBoletas}\n\n¡Gracias! 🙏`
+      mensaje = mensajeSaldoPendienteVenta({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        saldo,
+        montoTotal: venta.monto_total,
+        abonado: venta.abono_total,
+      })
     } else if (venta.estado_venta === 'PENDIENTE') {
-      mensaje = `Hola ${venta.cliente_nombre}, te recordamos que tienes pendiente el pago de *${formatoMoneda(venta.monto_total)}* en la rifa *${venta.rifa_nombre}* (boletas: *${numeros}*).${mediosDePago}${linkBoletas}\n\nRecuerda enviar el comprobante de pago por este medio. ¡Gracias! 🙏`
+      mensaje = mensajePagoPendienteVenta({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        saldo: venta.monto_total,
+      })
     }
 
     return `https://wa.me/${telefonoCompleto}?text=${encodeURIComponent(mensaje)}`

@@ -7,8 +7,14 @@ import { ventasApi } from '@/lib/ventasApi'
 import ReciboAbono, { ReciboAbonoData } from '@/components/ventas/ReciboAbono'
 import { formatearInputPesos, parsearInputPesos } from '@/utils/formatPesos'
 import { normalizarTelefono } from '@/utils/telefono'
-import { getMediosDePagoTexto } from '@/config/paymentInfo'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import {
+  formatPacha,
+  mensajeConfirmacionAbono,
+  mensajePagoPendienteVenta,
+  mensajeReservaRecibida,
+  mensajeSaldoPendienteVenta,
+} from '@/utils/whatsappMensajes'
 
 function labelBoleta(b: { numero: number; numeros?: number[] }) {
   return formatBoletaNumeros(b.numeros, b.numero)
@@ -434,43 +440,29 @@ export default function DetalleVentaPublica({
     if (!telefonoCompleto || telefonoCompleto.length < 7) return null
 
     const nombre = venta.cliente_nombre || 'Cliente'
-    const numeros = venta.boletas.map((b) => labelBoleta(b)).join(', ')
-
-    // Calcular estado post-abono (los datos de la venta aún no se refrescaron, calcular manualmente)
     const nuevoPagado = venta.abono_total + montoAbonado
     const nuevoSaldo = venta.monto_total - nuevoPagado
     const cuentaSaldada = nuevoSaldo <= 0
 
-    // Info por boleta
-    const boletasDetalle = venta.boletas.map(b => {
+    const lineasPachas = venta.boletas.map(b => {
       const pagado = (b.total_pagado_boleta || 0)
       const precio = b.precio_boleta || 0
-      const estado = pagado >= precio ? '✅ Pagada'
-        : pagado > 0 ? `💰 Abonada ($${pagado.toLocaleString('es-CO')} de $${precio.toLocaleString('es-CO')})`
-        : '🔒 Pendiente'
-      return `  ${labelBoleta(b)}: ${estado}`
-    }).join('\n')
+      const estado = pagado >= precio ? '✅ al día'
+        : pagado > 0 ? `💰 llevas $${pagado.toLocaleString('es-CO')} de $${precio.toLocaleString('es-CO')}`
+        : '🔒 pendiente'
+      return `  ${formatPacha(b.numeros, b.numero)}: ${estado}`
+    })
 
-    let mensaje = ''
-    if (cuentaSaldada) {
-      mensaje = `Hola ${nombre}, te confirmamos que tu pago de *${formatoMoneda(montoAbonado)}* fue registrado exitosamente. 🎉\n\n`
-      mensaje += `*Estado de tu cuenta - ${venta.rifa_nombre}:*\n`
-      mensaje += `💵 Total: ${formatoMoneda(venta.monto_total)}\n`
-      mensaje += `✅ Pagado: ${formatoMoneda(nuevoPagado)}\n`
-      mensaje += `🎉 *¡Cuenta saldada!*\n`
-      if (boletasDetalle) mensaje += `\n*Tus boletas:*\n${boletasDetalle}\n`
-      mensaje += `\n¡Mucha suerte! 🍀`
-      mensaje += `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`
-    } else {
-      mensaje = `Hola ${nombre}, te confirmamos que tu abono de *${formatoMoneda(montoAbonado)}* fue registrado exitosamente. ✅\n\n`
-      mensaje += `*Estado de tu cuenta - ${venta.rifa_nombre}:*\n`
-      mensaje += `💵 Total: ${formatoMoneda(venta.monto_total)}\n`
-      mensaje += `✅ Pagado: ${formatoMoneda(nuevoPagado)}\n`
-      mensaje += `⏳ Saldo pendiente: *${formatoMoneda(nuevoSaldo)}*\n`
-      if (boletasDetalle) mensaje += `\n*Tus boletas:*\n${boletasDetalle}\n`
-      mensaje += `\n¡Gracias por tu pago! 🙏`
-      mensaje += `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`
-    }
+    const mensaje = mensajeConfirmacionAbono({
+      nombre,
+      rifaNombre: venta.rifa_nombre,
+      montoAbonado,
+      montoTotal: venta.monto_total,
+      nuevoPagado,
+      nuevoSaldo,
+      lineasPachas,
+      cuentaSaldada,
+    })
 
     return `https://wa.me/${telefonoCompleto}?text=${encodeURIComponent(mensaje)}`
   }
@@ -480,18 +472,33 @@ export default function DetalleVentaPublica({
    */
   const generarWhatsAppLink = () => {
     const telefonoCompleto = normalizarTelefono(venta.cliente_telefono)
-    
-    const numeros = venta.boletas.map((b) => labelBoleta(b)).join(', ')
-    
-    const mediosPago = getMediosDePagoTexto()
+    const pachas = venta.boletas.map((b) => formatPacha(b.numeros, b.numero)).join(', ')
+
     let mensaje = ''
 
     if (venta.estado_venta === 'SIN_REVISAR') {
-      mensaje = `Hola ${venta.cliente_nombre}, recibimos tu reserva en la rifa *${venta.rifa_nombre}* para las boletas *${numeros}*, por un total de *${formatoMoneda(venta.monto_total)}*.\n\n🏆 *PARA PARTICIPAR EN LOS PREMIOS:*\n✅ *Anticipados:* mínimo $90.000 abonados todos los sábados por $2.000.000 acumulables\n🎁 *Premio mayor (20 de junio):* boleta pagada al 100%\n\n${mediosPago}\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\nRecuerda enviar el comprobante de pago por este medio. ¡Gracias!`
+      mensaje = mensajeReservaRecibida({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        montoTotal: venta.monto_total,
+      })
     } else if (venta.estado_venta === 'ABONADA') {
-      mensaje = `Hola ${venta.cliente_nombre}, te recordamos que tienes un saldo pendiente de *${formatoMoneda(venta.saldo_pendiente)}* en la rifa *${venta.rifa_nombre}* (boletas: *${numeros}*). Total: ${formatoMoneda(venta.monto_total)}, Abonado: ${formatoMoneda(venta.abono_total)}.\n\n${mediosPago}\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n¡Gracias!`
+      mensaje = mensajeSaldoPendienteVenta({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        saldo: venta.saldo_pendiente,
+        montoTotal: venta.monto_total,
+        abonado: venta.abono_total,
+      })
     } else if (venta.estado_venta === 'PENDIENTE') {
-      mensaje = `Hola ${venta.cliente_nombre}, te recordamos que tienes pendiente el pago de *${formatoMoneda(venta.saldo_pendiente)}* en la rifa *${venta.rifa_nombre}* (boletas: *${numeros}*).\n\n${mediosPago}\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\nRecuerda enviar el comprobante de pago por este medio. ¡Gracias!`
+      mensaje = mensajePagoPendienteVenta({
+        nombre: venta.cliente_nombre,
+        rifaNombre: venta.rifa_nombre,
+        pachas,
+        saldo: venta.saldo_pendiente,
+      })
     }
 
     return `https://wa.me/${telefonoCompleto}?text=${encodeURIComponent(mensaje)}`

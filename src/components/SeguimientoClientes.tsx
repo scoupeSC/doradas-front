@@ -9,9 +9,12 @@ import {
   FiltroNotificado,
 } from '@/lib/seguimientoClientesApi'
 import { normalizarTelefono } from '@/utils/telefono'
-import { getMediosDePagoTexto } from '@/config/paymentInfo'
 import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import {
+  lineaPachaPendiente,
+  mensajeRecordatorioPendiente,
+} from '@/utils/whatsappMensajes'
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
 const COP = (v: number) =>
@@ -58,16 +61,7 @@ function generarUrlWhatsAppSeguimiento(cliente: ClienteSeguimiento): string | nu
   if (!telCompleto || telCompleto.length < 7) return null
 
   const nombre = cliente.nombre || 'Cliente'
-  const COP_fmt = (v: number) =>
-    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v)
-
-  const getEmoji = (estado: string) =>
-    estado === 'RESERVADA' ? '📌' : estado === 'ABONADA' ? '💳' : '✅'
-
-  let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
-  msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
-  msg += `🎯 *¡No se quede por fuera del anticipado este sábado 13 por 4 millones de pesos!*\n`
-  msg += `Para participar en el anticipado cada boleta debe estar cancelada por lo menos con $60.000 y para el premio mayor el 20 de junio debe estar cancelada completamente.\n\n`
+  const lineasDetalle: string[] = []
 
   const pendientes = cliente.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
   if (pendientes.length > 0) {
@@ -78,27 +72,27 @@ function generarUrlWhatsAppSeguimiento(cliente: ClienteSeguimiento): string | nu
       rifaMap.set(b.rifa_nombre, list)
     }
     for (const [rifaNombre, boletas] of rifaMap.entries()) {
-      msg += `🎟️ *${rifaNombre}*\n`
+      lineasDetalle.push(`🎟️ *${rifaNombre}*`)
       for (const b of boletas) {
-        const num = formatBoletaNumeros(b.numeros, b.numero)
-        if (b.estado === 'RESERVADA') {
-          msg += `  ${getEmoji(b.estado)} Boleta *${num}* — Reservada (pendiente: ${COP_fmt(Number(b.saldo_pendiente))})\n`
-        } else {
-          msg += `  ${getEmoji(b.estado)} Boleta *${num}* — Abonado: ${COP_fmt(Number(b.abono_total))} de ${COP_fmt(Number(b.precio_boleta))} (falta: ${COP_fmt(Number(b.saldo_pendiente))})\n`
-        }
+        lineasDetalle.push(lineaPachaPendiente({
+          estado: b.estado,
+          numeros: b.numeros,
+          numero: b.numero,
+          saldo: Number(b.saldo_pendiente),
+          abono: Number(b.abono_total),
+          precio: Number(b.precio_boleta),
+        }))
       }
-      msg += `\n`
+      lineasDetalle.push('')
     }
   }
 
   const totalDeuda = cliente.boletas.reduce((acc, b) => acc + Number(b.saldo_pendiente), 0)
-  if (totalDeuda > 0) {
-    msg += `💰 *Total pendiente: ${COP_fmt(totalDeuda)}*\n\n`
-  }
-
-  msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-  msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-  msg += `¡Gracias por su confianza! 🙏✨`
+  const msg = mensajeRecordatorioPendiente({
+    nombre,
+    lineasDetalle,
+    deudaTotal: totalDeuda,
+  })
 
   return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
 }

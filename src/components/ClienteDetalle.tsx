@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { clienteApi } from '@/lib/clienteApi'
 import { normalizarTelefono } from '@/utils/telefono'
-import { getMediosDePagoTexto } from '@/config/paymentInfo'
 import {
   Cliente,
   ClienteDetalleResumen,
@@ -13,6 +12,10 @@ import {
 } from '@/types/cliente'
 import ClienteHistorialMovimientos from '@/components/ClienteHistorialMovimientos'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import {
+  lineaPachaPendiente,
+  mensajeRecordatorioPendiente,
+} from '@/utils/whatsappMensajes'
 
 interface ClienteDetalleProps {
   clienteId: string
@@ -177,42 +180,37 @@ export default function ClienteDetalle({ clienteId, onBack }: ClienteDetalleProp
   const generarWhatsAppRecordatorio = (
     cli: Cliente,
     rifasFiltradas: RifaConBoletas[],
-    estado: FilterEstado
+    _estado: FilterEstado
   ): string => {
     const telCompleto = normalizarTelefono(cli.telefono)
-
     const nombre = cli.nombre || 'Cliente'
-    const esReservada = estado === 'RESERVADA'
-    const titulo = esReservada ? '🔔 Recordatorio de Boletas Reservadas' : '🔔 Recordatorio de Boletas con Abono Pendiente'
 
-    let msg = `${titulo}\n\nHola *${nombre}*, le recordamos que tiene las siguientes boletas pendientes:\n\n`
-
+    const lineasDetalle: string[] = []
     let deudaTotal = 0
 
     rifasFiltradas.forEach((rifa) => {
-      msg += `🎟️ *${rifa.rifa_nombre}*\n`
+      lineasDetalle.push(`🎟️ *${rifa.rifa_nombre}*`)
       rifa.boletas.forEach((b) => {
         const esPagada = b.estado === 'PAGADA'
-        const abonoReal = esPagada ? b.precio_unitario : b.abono
         const saldoReal = esPagada ? 0 : b.saldo
         deudaTotal += saldoReal
-
-        msg += `  • Boleta ${formatBoletaNumeros(b.numeros, b.numero)}`
-        msg += ` — Estado: ${b.estado}`
-        if (b.estado === 'ABONADA') {
-          msg += ` | Abonado: ${formatCurrency(abonoReal)} | Debe: ${formatCurrency(saldoReal)}`
-        } else if (b.estado === 'RESERVADA') {
-          msg += ` | Precio: ${formatCurrency(b.precio_unitario)} | Debe: ${formatCurrency(saldoReal)}`
-        }
-        msg += `\n`
+        lineasDetalle.push(lineaPachaPendiente({
+          estado: b.estado,
+          numeros: b.numeros,
+          numero: b.numero,
+          saldo: Number(saldoReal),
+          abono: Number(esPagada ? b.precio_unitario : b.abono),
+          precio: Number(b.precio_unitario),
+        }))
       })
-      msg += `\n`
+      lineasDetalle.push('')
     })
 
-    msg += `💰 *Total pendiente por pagar: ${formatCurrency(deudaTotal)}*\n\n`
-    msg += `${getMediosDePagoTexto()}`
-    msg += `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`
-    msg += `\n\nPor favor, acérquese a realizar su pago lo antes posible para asegurar su participación. ¡Gracias! 🙏`
+    const msg = mensajeRecordatorioPendiente({
+      nombre,
+      lineasDetalle,
+      deudaTotal,
+    })
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }

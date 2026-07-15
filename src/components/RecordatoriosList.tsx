@@ -5,8 +5,10 @@ import { recordatoriosApi, ClienteRecordatorio, ResumenRecordatorios, Vendedor }
 import { clienteApi } from '@/lib/clienteApi'
 import { RifaConBoletas } from '@/types/cliente'
 import { normalizarTelefono } from '@/utils/telefono'
-import { getMediosDePagoTexto } from '@/config/paymentInfo'
-import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import {
+  lineaPachaPendiente,
+  mensajeRecordatorioPendiente,
+} from '@/utils/whatsappMensajes'
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('es-CO', {
@@ -15,15 +17,6 @@ const formatCurrency = (value: number) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
-}
-
-function getEstadoEmoji(estado: string): string {
-  switch (estado) {
-    case 'RESERVADA': return '📌'
-    case 'ABONADA': return '💳'
-    case 'PAGADA': return '✅'
-    default: return '🔹'
-  }
 }
 
 function formatDateTime(dateString: string | null) {
@@ -61,47 +54,39 @@ async function generarMensajeWhatsApp(
     const response = await clienteApi.getClienteDetalle(cliente.id)
     const { rifas, resumen } = response.data
 
-    let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
-    msg += `Le escribimos de *Inversiones Castaño* para recordarle sobre sus boletas pendientes.\n\n`
-    msg += `🎯 *¡No se quede por fuera del  premio mayor que vuelve y juega este sabado 27 de Junio recuerda pagar el total de tu boleta para participar!*\n`
-    
-
-    // Detalle por rifa
+    const lineasDetalle: string[] = []
     rifas.forEach((rifa: RifaConBoletas) => {
       const boletasPendientes = rifa.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
       if (boletasPendientes.length === 0) return
 
-      msg += `🎟️ *${rifa.rifa_nombre}*\n`
+      lineasDetalle.push(`🎟️ *${rifa.rifa_nombre}*`)
       boletasPendientes.forEach(b => {
-        const num = formatBoletaNumeros(b.numeros, b.numero)
-        if (b.estado === 'RESERVADA') {
-          msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Reservada (pendiente: ${formatCurrency(Number(b.saldo))})\n`
-        } else {
-          msg += `  ${getEstadoEmoji(b.estado)} Boleta *${num}* — Abonado: ${formatCurrency(Number(b.abono))} de ${formatCurrency(Number(b.precio_unitario))} (falta: ${formatCurrency(Number(b.saldo))})\n`
-        }
+        lineasDetalle.push(lineaPachaPendiente({
+          estado: b.estado,
+          numeros: b.numeros,
+          numero: b.numero,
+          saldo: Number(b.saldo),
+          abono: Number(b.abono),
+          precio: Number(b.precio_unitario),
+        }))
       })
-      msg += `\n`
+      lineasDetalle.push('')
     })
 
-    const deuda = Number(resumen.total_deuda) || 0
-    if (deuda > 0) {
-      msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
-    }
-
-    msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-    msg += `¡Gracias por su confianza! 🙏✨`
+    const msg = mensajeRecordatorioPendiente({
+      nombre,
+      lineasDetalle,
+      deudaTotal: Number(resumen.total_deuda) || 0,
+    })
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   } catch {
-    // Fallback si falla la API
     const deuda = cliente.deuda_total || 0
-    let msg = `🔔 *¡Hola ${nombre}!* 🎉\n\n`
-    msg += `Le recordamos que tiene boletas pendientes por pagar.\n\n`
-    if (deuda > 0) msg += `💰 *Total pendiente: ${formatCurrency(deuda)}*\n\n`
-    msg += `🏦 ${getMediosDePagoTexto()}\n\n`
-    msg += `📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas\n\n`
-    msg += `¡Complete su pago para participar en los sorteos anticipados! 🙏✨`
+    const msg = mensajeRecordatorioPendiente({
+      nombre,
+      lineasDetalle: [],
+      deudaTotal: deuda,
+    })
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }
 }

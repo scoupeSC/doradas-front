@@ -1,8 +1,7 @@
-// Configuración de medios de pago por rol
-// ADMIN/SUPER_ADMIN usan la cuenta principal
-// VENDEDOR usa su propia cuenta
+// Configuración de medios de pago — Rifas Doradas (única cuenta para todos los roles)
 
 import { TokenManager } from '@/utils/auth'
+import { RIFAS_DORADAS_CONTACT } from '@/config/rifasDoradasContact'
 
 interface PaymentInfo {
   llave: string | null
@@ -11,49 +10,35 @@ interface PaymentInfo {
   whatsapp: string | null
 }
 
-const ADMIN_PAYMENT: PaymentInfo = {
-  llave: '0091761012',
-  cuentaBancolombia: '70800002342',
-  titular: 'INVERSIONES CASTAÑO SAS',
-  whatsapp: null,
-}
-
-const VENDEDOR_PAYMENT: PaymentInfo = {
-  llave: null,
-  cuentaBancolombia: '70800002404',
-  titular: 'Inversiones Castaño asociados',
-  whatsapp: '3228015848',
+const RIFAS_DORADAS_PAYMENT: PaymentInfo = {
+  llave: RIFAS_DORADAS_CONTACT.llaveBreve,
+  cuentaBancolombia: RIFAS_DORADAS_CONTACT.cuentaBancolombia,
+  titular: RIFAS_DORADAS_CONTACT.titular,
+  whatsapp: RIFAS_DORADAS_CONTACT.whatsappDisplay.replace(/\s/g, ''),
 }
 
 export function getPaymentInfo(): PaymentInfo {
-  const user = TokenManager.getUser()
-  const rol = user?.rol?.toUpperCase()
-  if (rol === 'VENDEDOR') return VENDEDOR_PAYMENT
-  return ADMIN_PAYMENT
+  // Misma cuenta para admin y vendedor
+  void TokenManager.getUser()
+  return RIFAS_DORADAS_PAYMENT
 }
 
 /**
  * Genera el bloque de texto de medios de pago para mensajes de WhatsApp.
- * Formato multilinea para incluir en mensajes.
  */
 export function getMediosDePagoTexto(): string {
   const info = getPaymentInfo()
-  let texto = `*MEDIOS DE PAGO*\n`
+  let texto = `*Cómo pagar (Rifas Doradas)*\n`
   if (info.llave) {
-    texto += `💰 LLAVE ${info.llave} \n`
+    texto += `💰 Llave Bre-B: ${info.llave}\n`
   }
-  texto += `💰 CUENTA DE AHORROS BANCOLOMBIA: ${info.cuentaBancolombia}\n`
-  texto += `${info.titular}\n`
-  if (info.whatsapp) {
-    texto += `📲 WHATSAPP: ${info.whatsapp}\n`
-  }
-  texto += `\n*Importante: enviar comprobante de pago una vez realizada la transferencia* ✅`
+  texto += `💰 Bancolombia ahorros: ${info.cuentaBancolombia}\n`
+  texto += `A nombre de: ${info.titular}\n`
+  texto += `📲 WhatsApp: ${RIFAS_DORADAS_CONTACT.whatsappDisplay}\n`
+  texto += `\nCuando pagues, envíanos el comprobante por este chat ✅`
   return texto
 }
 
-/**
- * Versión con saltos de línea extras al inicio (para concatenar en mensajes).
- */
 export function getMediosDePagoBloque(): string {
   return `\n\n${getMediosDePagoTexto()}`
 }

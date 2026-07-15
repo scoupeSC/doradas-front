@@ -2,12 +2,17 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { getVentasGeneral } from '../services/analytics.service';
 import { normalizarTelefono } from '@/utils/telefono';
-import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros';
+import {
+  formatPacha,
+  formatPachasDesdeNumerosPlanos,
+  mensajeComprobanteAbono,
+  mensajeComprobanteVenta,
+} from '@/utils/whatsappMensajes';
 
 // ─── Helpers ───────────────────────────────────────────
 const fmt = (n) => `$${Number(n).toLocaleString('es-CO')}`;
 
-/** Etiquetas pacha por boleta: ["#0004 · #1234"] */
+/** Etiquetas pacha por boleta: ["Pacha #0004 · #1234"] */
 function labelsBoletasVenta(ventaOrAbono) {
   let boletas = ventaOrAbono?.boletas;
   // Algunos drivers devuelven json_agg como string
@@ -19,23 +24,22 @@ function labelsBoletasVenta(ventaOrAbono) {
     }
   }
   if (Array.isArray(boletas) && boletas.length > 0) {
-    return boletas.map((b) => formatBoletaNumeros(b.numeros, b.numero));
+    return boletas.map((b) => formatPacha(b.numeros, b.numero));
   }
   // Fallback: numeros_boletas puede venir plano con todos los números de la pacha
   const flat = ventaOrAbono?.numeros_boletas || [];
   if (flat.length > 1 && !ventaOrAbono?.cantidad_boletas) {
-    return [formatBoletaNumeros(flat.map(Number))];
+    return [formatPachasDesdeNumerosPlanos(flat.map(Number))];
   }
   // Si hay N boletas y 2N números, agrupar de a 2 (orden pacha)
   const cantidad = Number(ventaOrAbono?.cantidad_boletas) || 0;
   if (cantidad > 0 && flat.length === cantidad * 2) {
-    const labels = [];
-    for (let i = 0; i < flat.length; i += 2) {
-      labels.push(formatBoletaNumeros([Number(flat[i]), Number(flat[i + 1])]));
-    }
-    return labels;
+    return formatPachasDesdeNumerosPlanos(flat.map(Number), cantidad).split(', ');
   }
-  return flat.map((n) => `#${String(n).padStart(4, '0')}`);
+  if (flat.length > 0) {
+    return [formatPachasDesdeNumerosPlanos(flat.map(Number))];
+  }
+  return [];
 }
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -163,20 +167,17 @@ function VentaDetalleExpandido({ venta }) {
   const generarWhatsAppLink = () => {
     const telCompleto = normalizarTelefono(venta.cliente_telefono);
     if (!telCompleto || telCompleto.length < 7) return null;
-    const boletas = labelsBoletasVenta(venta).join(', ');
+    const pachas = labelsBoletasVenta(venta).join(', ');
     const tipoLabel = { PAGO_TOTAL: 'Pago Total', ABONO: 'Abono Parcial', RESERVA: 'Reserva', SIN_PAGO: 'Sin Pago' };
 
-    let msg = `🧾 *Comprobante de Venta*\n\n`;
-    msg += `Hola *${venta.cliente_nombre}*, aquí tiene el detalle de su venta:\n\n`;
-    msg += `📋 *Tipo:* ${tipoLabel[venta.tipo_transaccion] || venta.tipo_transaccion}\n`;
-    msg += `🎟️ *Boletas:* ${boletas}\n`;
-    msg += `💵 *Monto Total:* ${fmt(venta.monto_total)}\n`;
-    msg += `✅ *Total Pagado:* ${fmt(venta.total_pagado_real)}\n`;
-    if (venta.saldo_pendiente > 0) {
-      msg += `🔴 *Saldo Pendiente:* ${fmt(venta.saldo_pendiente)}\n`;
-    }
-    msg += `\n¡Gracias por su compra! 🎉`;
-    msg += `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`;
+    const msg = mensajeComprobanteVenta({
+      nombre: venta.cliente_nombre,
+      tipoLabel: tipoLabel[venta.tipo_transaccion] || venta.tipo_transaccion,
+      pachas,
+      montoTotal: venta.monto_total,
+      totalPagado: venta.total_pagado_real,
+      saldoPendiente: venta.saldo_pendiente,
+    });
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`;
   };
@@ -322,18 +323,15 @@ function AbonoDetalleExpandido({ abono }) {
   const generarWhatsAppLink = () => {
     const telCompleto = normalizarTelefono(abono.cliente_telefono);
     if (!telCompleto || telCompleto.length < 7) return null;
-    const boletas = labelsBoletasVenta(abono).join(', ');
-    let msg = `🧾 *Comprobante de Abono*\n\n`;
-    msg += `Hola *${abono.cliente_nombre}*, confirmamos tu abono:\n\n`;
-    msg += `💵 *Monto abonado:* ${fmt(abono.monto)}\n`;
-    msg += `🎟️ *Boletas:* ${boletas}\n`;
-    msg += `💰 *Total de la venta:* ${fmt(abono.monto_total)}\n`;
-    msg += `✅ *Total pagado:* ${fmt(abono.abono_total)}\n`;
-    if (abono.saldo_pendiente > 0) {
-      msg += `🔴 *Saldo pendiente:* ${fmt(abono.saldo_pendiente)}\n`;
-    }
-    msg += `\n¡Gracias! 🎉`;
-    msg += `\n\n📲 *Revisa tus boletas aquí:*\nhttps://elgrancamion.com/boletas`;
+    const pachas = labelsBoletasVenta(abono).join(', ');
+    const msg = mensajeComprobanteAbono({
+      nombre: abono.cliente_nombre,
+      monto: abono.monto,
+      pachas,
+      montoTotal: abono.monto_total,
+      abonoTotal: abono.abono_total,
+      saldoPendiente: abono.saldo_pendiente,
+    });
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`;
   };
   const whatsappLink = generarWhatsAppLink();
