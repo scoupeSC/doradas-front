@@ -32,12 +32,12 @@ export default function Page() {
     try {
       const user = JSON.parse(userData);
       role = (user?.rol || '').toUpperCase();
-      if (!['SUPER_ADMIN', 'VENDEDOR'].includes(role)) {
+      if (role !== 'SUPER_ADMIN') {
         setAccesoDenegado(true);
         setLoading(false);
         return;
       }
-      setEsSuperAdmin(role === 'SUPER_ADMIN');
+      setEsSuperAdmin(true);
     } catch {
       router.push('/login');
       return;
@@ -57,7 +57,7 @@ export default function Page() {
         setRifas(rifasRes.data || []);
         setVendedores(usuariosRes.data || []);
       } catch (error) {
-        console.error("Error cargando rifas", error);
+        console.error("Error cargando proyectos", error);
       } finally {
         setLoading(false);
       }
@@ -89,7 +89,7 @@ export default function Page() {
   
   if (!rifas.length) return (
     <div className="flex items-center justify-center py-24 text-slate-500">
-      No hay rifas configuradas en el sistema.
+      No hay proyectos configuradas en el sistema.
     </div>
   );
 

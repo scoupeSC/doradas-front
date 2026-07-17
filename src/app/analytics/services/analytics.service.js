@@ -3,7 +3,7 @@ import { API_BASE_URL } from '@/config/api';
 
 /**
  * scope:
- *   'global'      → /api/reportes/rifa/...        (todas las ventas - solo SUPER_ADMIN)
+ *   'global'      → /api/reportes/rifa/...        (todas las ventas - SUPER_ADMIN / ADMIN)
  *   'mis-ventas'  → /api/reportes/mis-ventas/...  (solo ventas del usuario autenticado)
  */
 const buildBase = (scope) =>
