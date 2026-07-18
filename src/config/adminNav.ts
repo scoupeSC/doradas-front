@@ -115,6 +115,12 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     description: 'Vista avanzada de ventas',
     roles: ['SUPER_ADMIN'],
   },
+  {
+    href: '/transacciones-wompi',
+    label: 'Transacciones Wompi',
+    description: 'Auditoría de pagos y entrega',
+    roles: ['SUPER_ADMIN'],
+  },
 ]
 
 export function homeRouteForRole(rol?: string | null): string {
