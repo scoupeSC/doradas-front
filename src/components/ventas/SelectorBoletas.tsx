@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ventasApi } from '@/lib/ventasApi'
 import { BoletaDisponible, BoletaEnCarrito, BoletaBloqueada } from '@/types/ventas'
-import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros } from '@/utils/formatBoletaNumeros'
+import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros, getPrincipalGift } from '@/utils/formatBoletaNumeros'
+import PrincipalGiftLabel from '@/components/ventas/PrincipalGiftLabel'
 
 
 interface SelectorBoletasProps {
@@ -34,8 +35,15 @@ export default function SelectorBoletas({
   const [pagina, setPagina] = useState(1)
   const [boletasPorPagina] = useState(20)
   const [bloqueando, setBloqueando] = useState<Set<string>>(new Set())
+  /** Número tocado mientras se bloquea (feedback visual de principal). */
+  const [numeroEnSeleccion, setNumeroEnSeleccion] = useState<{
+    boletaId: string
+    numero: number
+  } | null>(null)
+  const [feedbackPrincipal, setFeedbackPrincipal] = useState<string | null>(null)
   const intervalosRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
   const seleccionadasIdsRef = useRef<Set<string>>(new Set())
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     seleccionadasIdsRef.current = new Set(boletasSeleccionadas.map((b) => b.id))
@@ -108,16 +116,19 @@ export default function SelectorBoletas({
   ) => {
     if (bloqueando.has(boleta.id)) return
     
+    const nums = normalizeNumeros((boleta as any).numeros, boleta.numero)
+    const principal =
+      numeroPrincipal != null && nums.includes(Number(numeroPrincipal))
+        ? Number(numeroPrincipal)
+        : Number(boleta.numero)
+
     setBloqueando(prev => new Set(prev).add(boleta.id))
+    setNumeroEnSeleccion({ boletaId: boleta.id, numero: principal })
     
     try {
-      const nums = normalizeNumeros((boleta as any).numeros, boleta.numero)
-      const principal =
-        numeroPrincipal != null && nums.includes(Number(numeroPrincipal))
-          ? Number(numeroPrincipal)
-          : Number(boleta.numero)
       const response = await ventasApi.bloquearBoleta(boleta.id, 15, principal)
       const bloqueo = response.data
+      const { gift } = getPrincipalGift(nums, boleta.numero, principal)
       
       const boletaEnCarrito: BoletaEnCarrito = {
         id: boleta.id,
@@ -135,6 +146,14 @@ export default function SelectorBoletas({
       onBoletaSeleccionada(boletaEnCarrito)
       setBoletasDisponibles(prev => prev.filter(b => b.id !== boleta.id))
       setError(null)
+
+      const msg =
+        gift != null
+          ? `Principal #${String(principal).padStart(4, '0')} · Regalo #${String(gift).padStart(4, '0')}`
+          : `Principal #${String(principal).padStart(4, '0')}`
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
+      setFeedbackPrincipal(msg)
+      feedbackTimerRef.current = setTimeout(() => setFeedbackPrincipal(null), 4500)
       
       const intervalId = await ventasApi.verificarBloqueoPeriodico(
         boleta.id,
@@ -183,6 +202,9 @@ export default function SelectorBoletas({
         newSet.delete(boleta.id)
         return newSet
       })
+      setNumeroEnSeleccion((prev) =>
+        prev?.boletaId === boleta.id ? null : prev
+      )
     }
   }
 
@@ -434,22 +456,31 @@ useEffect(() => {
           <h3 className="text-sm font-medium text-blue-900 mb-3">
             Boletas Seleccionadas ({boletasSeleccionadas.length})
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {feedbackPrincipal && (
+            <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 animate-pulse">
+              ✓ Seleccionaste: {feedbackPrincipal}
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {boletasSeleccionadas.map((boleta) => (
               <div
                 key={boleta.id}
-                className="bg-white border border-blue-300 rounded-lg p-3 flex items-center justify-between"
+                className="bg-white border border-blue-300 rounded-lg p-3 flex items-start justify-between gap-2"
               >
-                <div>
-<div className="font-medium text-blue-900">
-  {formatBoletaNumeros((boleta as any).numeros, boleta.numero)}
-</div>                  <div className="text-xs text-blue-700">
+                <div className="min-w-0">
+                  <PrincipalGiftLabel
+                    numeros={(boleta as any).numeros}
+                    numero={boleta.numero}
+                    numeroPrincipal={boleta.numero_principal}
+                  />
+                  <div className="mt-2 text-xs text-blue-700">
                     Bloqueada hasta: {new Date(boleta.bloqueo_hasta).toLocaleTimeString()}
                   </div>
                 </div>
                 <button
                   onClick={() => removerBoleta(boleta)}
-                  className="text-red-500 hover:text-red-700"
+                  className="shrink-0 text-red-500 hover:text-red-700 text-xl leading-none"
+                  aria-label="Quitar boleta"
                 >
                   ×
                 </button>
@@ -508,18 +539,32 @@ useEffect(() => {
                 <div className="text-center space-y-2">
                   {dual ? (
                     <div className="grid gap-1.5">
-                      {nums.map((n) => (
-                        <button
-                          key={`${boleta.id}-${n}`}
-                          type="button"
-                          onClick={() => seleccionarBoleta(boleta, n)}
-                          disabled={bloqueando.has(boleta.id)}
-                          className="w-full rounded-md border border-amber-300/70 bg-amber-50 px-2 py-1.5 text-sm font-bold text-slate-900 disabled:opacity-50"
-                          title={`Seleccionar #${String(n).padStart(4, '0')} como principal`}
-                        >
-                          #{String(n).padStart(4, '0')}
-                        </button>
-                      ))}
+                      {nums.map((n) => {
+                        const isPicking =
+                          numeroEnSeleccion?.boletaId === boleta.id &&
+                          numeroEnSeleccion.numero === n
+                        return (
+                          <button
+                            key={`${boleta.id}-${n}`}
+                            type="button"
+                            onClick={() => seleccionarBoleta(boleta, n)}
+                            disabled={bloqueando.has(boleta.id)}
+                            className={`w-full rounded-md border px-2 py-2 text-sm font-bold tabular-nums transition-all disabled:opacity-50 ${
+                              isPicking
+                                ? 'border-amber-500 bg-amber-400 text-slate-900 ring-2 ring-amber-400 scale-[1.03] shadow-md'
+                                : 'border-amber-300/70 bg-amber-50 text-slate-900 hover:border-amber-500 hover:bg-amber-100 hover:ring-1 hover:ring-amber-400'
+                            }`}
+                            title={`Seleccionar #${String(n).padStart(4, '0')} como principal`}
+                          >
+                            <span className="block">#{String(n).padStart(4, '0')}</span>
+                            {isPicking && (
+                              <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wide text-amber-950">
+                                Principal ✓
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
                       <p className="text-[10px] leading-tight text-slate-500">
                         Toca el número que será el principal
                       </p>

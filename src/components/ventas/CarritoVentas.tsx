@@ -13,6 +13,7 @@ import { generarWhatsAppChatLink } from '@/utils/telefono'
 import { WHATSAPP_VENTAS_ACTIVO } from '@/config/features'
 import { downloadBoletaImage } from '@/utils/downloadBoletaImage'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
+import PrincipalGiftLabel from '@/components/ventas/PrincipalGiftLabel'
 
 const MEDIOS_PAGO_MAP: Record<string, string> = {
   'd397d917-c0d0-4c61-b2b3-2ebfab7deeb7': 'Efectivo',
@@ -313,7 +314,14 @@ export default function CarritoVentas({
               {boletasVenta.map((b: any) => (
                 <div key={b.id} className="border border-slate-200 rounded-lg p-4 overflow-visible">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-bold text-slate-900">Boleta {formatBoletaNumeros(b.numeros, b.numero)}</span>
+                    <span className="font-bold text-slate-900">
+                      <PrincipalGiftLabel
+                        numeros={b.numeros}
+                        numero={b.numero}
+                        numeroPrincipal={b.numero_principal}
+                        compact
+                      />
+                    </span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => descargarBoleta(b.numero, cliente.identificacion || '', `boleta-print-${b.id}`)}
@@ -462,14 +470,17 @@ export default function CarritoVentas({
               key={boleta.id}
               className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg"
             >
-              <div className="flex items-center space-x-4">
-                <div className="font-medium text-slate-900">
-                  {formatBoletaNumeros(boleta.numeros, boleta.numero)}
-                </div>
-                <div className="text-sm text-slate-600">
+              <div className="flex items-center gap-4 min-w-0">
+                <PrincipalGiftLabel
+                  numeros={boleta.numeros}
+                  numero={boleta.numero}
+                  numeroPrincipal={boleta.numero_principal}
+                  compact
+                />
+                <div className="text-sm text-slate-600 shrink-0">
                   ${precioBoleta.toLocaleString('es-CO')}
                 </div>
-                <div className="text-xs text-amber-600">
+                <div className="text-xs text-amber-600 shrink-0">
                   Bloqueo: {tiempoRestante(boleta)}
                 </div>
               </div>
