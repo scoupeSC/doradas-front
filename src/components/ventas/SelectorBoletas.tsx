@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ventasApi } from '@/lib/ventasApi'
 import { BoletaDisponible, BoletaEnCarrito, BoletaBloqueada } from '@/types/ventas'
-import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros, getPrincipalGift } from '@/utils/formatBoletaNumeros'
+import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros, getPrincipalGift, sanitizeBoletaSearchDigits, scoreBoletaSearchMatch, isExactBoletaNumberMatch } from '@/utils/formatBoletaNumeros'
 import PrincipalGiftLabel from '@/components/ventas/PrincipalGiftLabel'
 
 
@@ -41,9 +41,21 @@ export default function SelectorBoletas({
     numero: number
   } | null>(null)
   const [feedbackPrincipal, setFeedbackPrincipal] = useState<string | null>(null)
+  const [boletaBuscada, setBoletaBuscada] = useState<{
+    id: string
+    numero: number
+    numeros: number[]
+    estado: string
+    disponible: boolean
+    bloqueada?: boolean
+    cliente_nombre?: string | null
+    cliente_identificacion?: string | null
+  } | null>(null)
+  const [buscandoExacta, setBuscandoExacta] = useState(false)
   const intervalosRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map())
   const seleccionadasIdsRef = useRef<Set<string>>(new Set())
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const busquedaExactaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     seleccionadasIdsRef.current = new Set(boletasSeleccionadas.map((b) => b.id))
@@ -331,10 +343,114 @@ if (interval) {
     }
   }, [])
 
-  // Filtrar boletas por búsqueda
-  const boletasFiltradas = (boletasDisponibles || []).filter(boleta =>
-    searchMatchesNumeros((boleta as any).numeros, busqueda, boleta.numero)
+  // Filtrar y ordenar boletas por búsqueda (exacto primero)
+  const boletasFiltradas = (() => {
+    const term = sanitizeBoletaSearchDigits(busqueda)
+    if (!term) return boletasDisponibles || []
+
+    const matched = (boletasDisponibles || []).filter((boleta) =>
+      searchMatchesNumeros((boleta as any).numeros, term, boleta.numero)
+    )
+
+    const exactInList = matched.some((boleta) =>
+      isExactBoletaNumberMatch((boleta as any).numeros, term, boleta.numero)
+    )
+
+    // Si hay match exacto disponible: mostrar solo esa(s). Si no: similares.
+    const list = exactInList
+      ? matched.filter((boleta) =>
+          isExactBoletaNumberMatch((boleta as any).numeros, term, boleta.numero)
+        )
+      : matched
+
+    return [...list].sort((a, b) => {
+      const scoreA = scoreBoletaSearchMatch((a as any).numeros, term, a.numero)
+      const scoreB = scoreBoletaSearchMatch((b as any).numeros, term, b.numero)
+      if (scoreA !== scoreB) return scoreA - scoreB
+      return a.numero - b.numero
+    })
+  })()
+
+  const exactaDisponible = Boolean(
+    busqueda &&
+      boletasFiltradas.some((boleta) =>
+        isExactBoletaNumberMatch(
+          (boleta as any).numeros,
+          busqueda,
+          boleta.numero
+        )
+      )
   )
+
+  // Consultar estado de la boleta exacta si no está en disponibles
+  useEffect(() => {
+    const term = sanitizeBoletaSearchDigits(busqueda)
+    if (busquedaExactaTimerRef.current) {
+      clearTimeout(busquedaExactaTimerRef.current)
+      busquedaExactaTimerRef.current = null
+    }
+
+    if (!term) {
+      setBoletaBuscada(null)
+      setBuscandoExacta(false)
+      return
+    }
+
+    // Esperar número completo (o al menos 3 dígitos) para no spamear API
+    if (term.length < 3) {
+      setBoletaBuscada(null)
+      setBuscandoExacta(false)
+      return
+    }
+
+    const enDisponibles = (boletasDisponibles || []).some((boleta) =>
+      isExactBoletaNumberMatch((boleta as any).numeros, term, boleta.numero)
+    )
+    if (enDisponibles) {
+      setBoletaBuscada(null)
+      setBuscandoExacta(false)
+      return
+    }
+
+    setBuscandoExacta(true)
+    busquedaExactaTimerRef.current = setTimeout(async () => {
+      try {
+        const numero = Number(term.replace(/^0+/, '') || term)
+        const response = await ventasApi.buscarBoletaPorNumero(rifaId, numero)
+        const data = response.data
+        if (!data) {
+          setBoletaBuscada(null)
+          return
+        }
+        setBoletaBuscada({
+          id: data.id,
+          numero: data.numero,
+          numeros: normalizeNumeros(data.numeros, data.numero),
+          estado: data.estado,
+          disponible: Boolean(data.disponible),
+          bloqueada: Boolean(data.bloqueada),
+          cliente_nombre: data.cliente_nombre,
+          cliente_identificacion: data.cliente_identificacion,
+        })
+      } catch {
+        setBoletaBuscada(null)
+      } finally {
+        setBuscandoExacta(false)
+      }
+    }, 280)
+
+    return () => {
+      if (busquedaExactaTimerRef.current) {
+        clearTimeout(busquedaExactaTimerRef.current)
+        busquedaExactaTimerRef.current = null
+      }
+    }
+  }, [busqueda, boletasDisponibles, rifaId])
+
+  // Reset página al cambiar búsqueda
+  useEffect(() => {
+    setPagina(1)
+  }, [busqueda])
 
   // Paginación
   const totalPaginas = Math.ceil(boletasFiltradas.length / boletasPorPagina)
@@ -443,12 +559,60 @@ useEffect(() => {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Buscar por número de boleta..."
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
+          maxLength={4}
+          placeholder="Buscar número de boleta (solo cifras)..."
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(e) => setBusqueda(sanitizeBoletaSearchDigits(e.target.value))}
           className="text-black placeholder:text-slate-500 w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-white"
         />
+        {busqueda && (
+          <p className="mt-1.5 text-xs text-slate-500">
+            {exactaDisponible
+              ? 'Mostrando la boleta exacta.'
+              : boletaBuscada && !boletaBuscada.disponible
+                ? 'Esa boleta ya no está disponible. Abajo verás números parecidos disponibles.'
+                : 'Buscando coincidencia exacta o números parecidos...'}
+          </p>
+        )}
       </div>
+
+      {/* Resultado exacto no disponible */}
+      {busqueda && boletaBuscada && !boletaBuscada.disponible && !exactaDisponible && (
+        <div className="mb-4 rounded-lg border-2 border-amber-400 bg-amber-50 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                Boleta encontrada · no disponible
+              </p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                {formatBoletaNumeros(boletaBuscada.numeros, boletaBuscada.numero)}
+              </p>
+              <p className="mt-1 text-sm text-amber-900">
+                Estado: <span className="font-semibold">{boletaBuscada.estado}</span>
+                {boletaBuscada.bloqueada ? ' (bloqueada temporalmente)' : ''}
+              </p>
+              {boletaBuscada.cliente_nombre && (
+                <p className="mt-1 text-sm text-slate-700">
+                  Cliente: {boletaBuscada.cliente_nombre}
+                  {boletaBuscada.cliente_identificacion
+                    ? ` · CC ${boletaBuscada.cliente_identificacion}`
+                    : ''}
+                </p>
+              )}
+            </div>
+            <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-bold uppercase text-amber-900">
+              Primero en resultados
+            </span>
+          </div>
+        </div>
+      )}
+
+      {busqueda && buscandoExacta && !exactaDisponible && !boletaBuscada && (
+        <div className="mb-4 text-sm text-slate-500">Consultando estado del número...</div>
+      )}
 
       {/* Boletas Seleccionadas */}
       {boletasSeleccionadas.length > 0 && (
@@ -509,13 +673,18 @@ useEffect(() => {
             </svg>
           </div>
           <h3 className="text-lg font-medium text-slate-900 mb-2">
-            {busqueda ? 'No se encontraron boletas' : 'No hay boletas disponibles'}
+            {busqueda && boletaBuscada && !boletaBuscada.disponible
+              ? 'Sin números parecidos disponibles'
+              : busqueda
+                ? 'No se encontraron boletas'
+                : 'No hay boletas disponibles'}
           </h3>
           <p className="text-slate-600 mb-4 max-w-md mx-auto">
-            {busqueda 
-              ? `No hay boletas que coincidan con "${busqueda}". Intenta con otro número de boleta.`
-              : 'Todas las boletas de este proyecto pueden estar vendidas o reservadas. Intenta más tarde o contacta al administrador.'
-            }
+            {busqueda && boletaBuscada && !boletaBuscada.disponible
+              ? `El número ${formatBoletaNumeros(boletaBuscada.numeros, boletaBuscada.numero)} ya no está disponible y no hay similares libres ahora.`
+              : busqueda
+                ? `No hay boletas que coincidan con "${busqueda}". Intenta con otro número.`
+                : 'Todas las boletas de este proyecto pueden estar vendidas o reservadas. Intenta más tarde o contacta al administrador.'}
           </p>
           {busqueda && (
             <button
@@ -527,14 +696,30 @@ useEffect(() => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <>
+          {busqueda && !exactaDisponible && boletasPagina.length > 0 && (
+            <p className="mb-3 text-sm font-medium text-slate-700">
+              {boletaBuscada && !boletaBuscada.disponible
+                ? 'Números parecidos disponibles'
+                : 'Resultados parecidos (la exacta no está libre)'}
+            </p>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {boletasPagina.map((boleta) => {
             const nums = normalizeNumeros((boleta as any).numeros, boleta.numero)
             const dual = nums.length > 1
+            const isExact = Boolean(
+              busqueda &&
+                isExactBoletaNumberMatch(nums, busqueda, boleta.numero)
+            )
             return (
               <div
                 key={boleta.id}
-                className="bg-white border-2 border-slate-200 rounded-lg p-3 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className={`bg-white border-2 rounded-lg p-3 hover:border-blue-500 hover:bg-blue-50 transition-all ${
+                  isExact
+                    ? 'border-emerald-500 ring-2 ring-emerald-300 bg-emerald-50'
+                    : 'border-slate-200'
+                }`}
               >
                 <div className="text-center space-y-2">
                   {dual ? (
@@ -592,6 +777,7 @@ useEffect(() => {
             )
           })}
         </div>
+        </>
       )}
 
       {/* Paginación */}

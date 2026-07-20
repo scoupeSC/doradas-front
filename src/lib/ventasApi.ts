@@ -108,6 +108,24 @@ class VentasApiService {
     return this.request<any[]>(`/boletas/rifa/${rifaId}/disponibles`)
   }
 
+  async buscarBoletaPorNumero(rifaId: string, numero: number) {
+    return this.request<{
+      id: string
+      numero: number
+      numeros?: number[]
+      numero_principal?: number | null
+      estado: string
+      disponible: boolean
+      bloqueada?: boolean
+      bloqueo_hasta?: string | null
+      cliente_nombre?: string | null
+      cliente_identificacion?: string | null
+      qr_url?: string
+      barcode?: string
+      imagen_url?: string
+    } | null>(`/boletas/rifa/${rifaId}/buscar?numero=${numero}`)
+  }
+
   async bloquearBoleta(
     boletaId: string,
     tiempoBloqueo = 15,
