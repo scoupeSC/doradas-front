@@ -22,7 +22,71 @@ import {
   BOLETA_DEFAULT_HEIGHT,
   boletaHeightForImage,
 } from '@/constants/boletaDimensions'
-import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros, getPrincipalGift } from '@/utils/formatBoletaNumeros'
+import { formatBoletaNumeros, searchMatchesNumeros, normalizeNumeros, getPrincipalGift, sanitizeBoletaSearchDigits } from '@/utils/formatBoletaNumeros'
+
+/** Quita acentos para comparar nombres (José ≈ Jose). */
+function normalizeText(value: string): string {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+/**
+ * Búsqueda de boletas:
+ * - Solo letras → nombre / teléfono (no números de boleta)
+ * - Solo cifras y ≤4 → número de boleta
+ * - Solo cifras y >4 → cédula / teléfono (no tratar como boleta)
+ * - Mezcla → nombre + cédula + número de boleta
+ */
+function boletaMatchesSearch(boleta: Boleta, rawTerm: string): boolean {
+  const term = String(rawTerm || '').trim()
+  if (!term) return true
+
+  const digits = term.replace(/\D/g, '')
+  const hasLetters = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/.test(term)
+  const onlyDigits = digits.length > 0 && !hasLetters
+
+  const nombre = normalizeText(boleta.cliente_info?.nombre || '')
+  const telefono = String(boleta.cliente_info?.telefono || '').replace(/\D/g, '')
+  const identificacion = String(boleta.cliente_info?.identificacion || '').replace(/\D/g, '')
+  const termNorm = normalizeText(term)
+
+  const matchNombre =
+    Boolean(termNorm) &&
+    termNorm.split(/\s+/).filter(Boolean).every((part) => nombre.includes(part))
+
+  const matchCedula =
+    digits.length > 0 &&
+    (identificacion.includes(digits) || (digits.length >= 4 && identificacion.endsWith(digits)))
+
+  const matchTelefono =
+    digits.length >= 4 && telefono.includes(digits)
+
+  // Cédula / documento largo: no buscar como número de boleta
+  if (onlyDigits && digits.length > 4) {
+    return matchCedula || matchTelefono
+  }
+
+  // Nombre (sin dígitos útiles): no marcar todas las boletas por matchNumero vacío
+  if (hasLetters && digits.length === 0) {
+    return matchNombre
+  }
+
+  const matchNumero = searchMatchesNumeros(
+    boleta.numeros,
+    sanitizeBoletaSearchDigits(term),
+    boleta.numero
+  )
+
+  if (onlyDigits) {
+    return matchNumero || matchCedula || matchTelefono
+  }
+
+  // Texto con letras y números
+  return matchNombre || matchCedula || matchTelefono || matchNumero
+}
 
 interface BoletaListProps {
   boletas: Boleta[]
@@ -94,15 +158,33 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
       })
     }
 
-    // Filtro por búsqueda de texto
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      result = result.filter(boleta => {
-        const nombre = boleta.cliente_info?.nombre?.toLowerCase() || ''
-        const identificacion = boleta.cliente_info?.identificacion?.toString() || ''
-        const matchNumero = searchMatchesNumeros(boleta.numeros, searchTerm, boleta.numero)
-        return matchNumero || nombre.includes(searchLower) || identificacion.includes(searchTerm)
-      })
+    // Filtro por búsqueda: nombre, cédula o número (sin mezclar mal)
+    if (searchTerm.trim()) {
+      result = result.filter((boleta) => boletaMatchesSearch(boleta, searchTerm))
+
+      const digits = searchTerm.replace(/\D/g, '')
+      const hasLetters = /[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/.test(searchTerm)
+      const preferCliente = hasLetters || digits.length > 4
+
+      if (preferCliente) {
+        const termNorm = normalizeText(searchTerm)
+        const scoreCliente = (b: Boleta) => {
+          const nombre = normalizeText(b.cliente_info?.nombre || '')
+          const id = String(b.cliente_info?.identificacion || '').replace(/\D/g, '')
+          if (digits.length > 4 && id === digits) return 0
+          if (digits.length > 0 && id.includes(digits)) return 1
+          if (nombre === termNorm) return 0
+          if (termNorm && nombre.startsWith(termNorm)) return 1
+          if (termNorm && nombre.includes(termNorm)) return 2
+          return 3
+        }
+        result = [...result].sort((a, b) => {
+          const sa = scoreCliente(a)
+          const sb = scoreCliente(b)
+          if (sa !== sb) return sa - sb
+          return a.numero - b.numero
+        })
+      }
     }
 
     return result
@@ -556,7 +638,7 @@ export default function BoletaList({ boletas, loading, rifaInfo }: BoletaListPro
             </div>
             <input
               type="text"
-              placeholder="Buscar por boleta (0000), nombre o identificación..."
+              placeholder="Buscar por nombre, cédula o número de boleta..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)

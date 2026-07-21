@@ -69,7 +69,8 @@ export function searchMatchesNumeros(
   fallbackNumero?: number | null
 ): boolean {
   const raw = sanitizeBoletaSearchDigits(term)
-  if (!raw) return true
+  // Sin cifras no hay match de número (evita que búsquedas por nombre marquen todo)
+  if (!raw) return false
   return scoreBoletaSearchMatch(numeros, raw, fallbackNumero) < Infinity
 }
 
