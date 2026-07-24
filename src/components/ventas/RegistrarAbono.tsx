@@ -183,6 +183,8 @@ function estadoBoletaTicket(b: BoletaVenta): string {
 
 const MEDIOS_PAGO = [
   { id: 'efectivo', label: 'Efectivo' },
+  { id: 'nequi', label: 'Nequi' },
+  { id: 'daviplata', label: 'Daviplata' },
   { id: 'transferencia', label: 'PSE' },
 ]
 

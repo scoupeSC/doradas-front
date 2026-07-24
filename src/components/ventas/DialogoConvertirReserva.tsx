@@ -371,6 +371,8 @@ export default function DialogoConvertirReserva({
             >
               <option value="">Seleccionar método de pago</option>
               <option value="d397d917-c0d0-4c61-b2b3-2ebfab7deeb7">Efectivo</option>
+              <option value="af6e15fc-c52c-4491-abe1-20243af301c4">Nequi</option>
+              <option value="daviplata">Daviplata</option>
               <option value="db94562d-bb01-42a3-9414-6e369a1a70ba">PSE</option>
             </select>
           </div>

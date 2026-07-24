@@ -19,6 +19,11 @@ const MEDIOS_PAGO_MAP: Record<string, string> = {
   'd397d917-c0d0-4c61-b2b3-2ebfab7deeb7': 'Efectivo',
   'af6e15fc-c52c-4491-abe1-20243af301c4': 'Nequi',
   'db94562d-bb01-42a3-9414-6e369a1a70ba': 'PSE',
+  daviplata: 'Daviplata',
+  nequi: 'Nequi',
+  efectivo: 'Efectivo',
+  pse: 'PSE',
+  transferencia: 'PSE',
   '57a2f560-b3d7-4fa8-91cf-24e6b2a6d7ff': 'Tarjeta Crédito',
 }
 
@@ -679,6 +684,8 @@ export default function CarritoVentas({
           >
             <option value="">Seleccionar método de pago</option>
             <option value="d397d917-c0d0-4c61-b2b3-2ebfab7deeb7">Efectivo</option>
+            <option value="af6e15fc-c52c-4491-abe1-20243af301c4">Nequi</option>
+            <option value="daviplata">Daviplata</option>
             <option value="db94562d-bb01-42a3-9414-6e369a1a70ba">PSE</option>
           </select>
         </div>
