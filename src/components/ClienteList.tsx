@@ -5,11 +5,8 @@ import { Cliente, ClienteFiltroEstado, ClienteResumenFiltros } from '@/types/cli
 import { clienteApi } from '@/lib/clienteApi'
 import { RifaConBoletas } from '@/types/cliente'
 import { normalizarTelefono } from '@/utils/telefono'
-import {
-  lineaPachaPendiente,
-  mensajeRecordatorioPendiente,
-  nombreProyecto,
-} from '@/utils/whatsappMensajes'
+import { mensajeRecordatorioPendiente } from '@/utils/whatsappMensajes'
+import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
 
 interface ClienteListProps {
   clientes: Cliente[]
@@ -55,42 +52,22 @@ async function generarWhatsAppRecordatorioConDetalle(cliente: Cliente): Promise<
 
   try {
     const response = await clienteApi.getClienteDetalle(cliente.id)
-    const { rifas, resumen } = response.data
+    const { rifas } = response.data
     const rifasActuales = rifas.filter((rifa: RifaConBoletas) => rifa.rifa_estado === 'ACTIVA')
 
-    const lineasDetalle: string[] = []
+    const pachas: string[] = []
     rifasActuales.forEach((rifa: RifaConBoletas) => {
       const boletasPendientes = rifa.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
-      if (boletasPendientes.length === 0) return
-
-      lineasDetalle.push(`🎟️ *${nombreProyecto(rifa.rifa_nombre)}*`)
       boletasPendientes.forEach(b => {
-        lineasDetalle.push(lineaPachaPendiente({
-          estado: b.estado,
-          numeros: b.numeros,
-          numero: b.numero,
-          saldo: Number(b.saldo),
-          abono: Number(b.abono),
-          precio: Number(b.precio_unitario),
-        }))
+        pachas.push(formatBoletaNumeros(b.numeros, b.numero))
       })
-      lineasDetalle.push('')
     })
 
-    const msg = mensajeRecordatorioPendiente({
-      nombre,
-      lineasDetalle,
-      deudaTotal: Number(resumen.total_deuda) || 0,
-    })
+    const msg = mensajeRecordatorioPendiente({ nombre, pachas })
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   } catch {
-    const deuda = cliente.deuda_total || 0
-    const msg = mensajeRecordatorioPendiente({
-      nombre,
-      lineasDetalle: [],
-      deudaTotal: deuda,
-    })
+    const msg = mensajeRecordatorioPendiente({ nombre, pachas: [] })
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }
 }

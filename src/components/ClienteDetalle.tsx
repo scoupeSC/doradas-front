@@ -13,11 +13,7 @@ import {
 import ClienteHistorialMovimientos from '@/components/ClienteHistorialMovimientos'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
 import { formatAbonoRegistradoPor } from '@/utils/formatAbonoRegistradoPor'
-import {
-  lineaPachaPendiente,
-  mensajeRecordatorioPendiente,
-  nombreProyecto,
-} from '@/utils/whatsappMensajes'
+import { mensajeRecordatorioPendiente } from '@/utils/whatsappMensajes'
 
 interface ClienteDetalleProps {
   clienteId: string
@@ -187,32 +183,15 @@ export default function ClienteDetalle({ clienteId, onBack }: ClienteDetalleProp
     const telCompleto = normalizarTelefono(cli.telefono)
     const nombre = cli.nombre || 'Cliente'
 
-    const lineasDetalle: string[] = []
-    let deudaTotal = 0
-
+    const pachas: string[] = []
     rifasFiltradas.forEach((rifa) => {
-      lineasDetalle.push(`🎟️ *${nombreProyecto(rifa.rifa_nombre)}*`)
       rifa.boletas.forEach((b) => {
-        const esPagada = b.estado === 'PAGADA'
-        const saldoReal = esPagada ? 0 : b.saldo
-        deudaTotal += saldoReal
-        lineasDetalle.push(lineaPachaPendiente({
-          estado: b.estado,
-          numeros: b.numeros,
-          numero: b.numero,
-          saldo: Number(saldoReal),
-          abono: Number(esPagada ? b.precio_unitario : b.abono),
-          precio: Number(b.precio_unitario),
-        }))
+        if (b.estado !== 'RESERVADA' && b.estado !== 'ABONADA') return
+        pachas.push(formatBoletaNumeros(b.numeros, b.numero))
       })
-      lineasDetalle.push('')
     })
 
-    const msg = mensajeRecordatorioPendiente({
-      nombre,
-      lineasDetalle,
-      deudaTotal,
-    })
+    const msg = mensajeRecordatorioPendiente({ nombre, pachas })
 
     return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
   }

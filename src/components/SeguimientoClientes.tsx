@@ -11,11 +11,7 @@ import {
 import { normalizarTelefono } from '@/utils/telefono'
 import { WHATSAPP_MENSAJE_ACTIVO } from '@/config/features'
 import { formatBoletaNumeros } from '@/utils/formatBoletaNumeros'
-import {
-  lineaPachaPendiente,
-  mensajeRecordatorioPendiente,
-  nombreProyecto,
-} from '@/utils/whatsappMensajes'
+import { mensajeRecordatorioPendiente } from '@/utils/whatsappMensajes'
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
 const COP = (v: number) =>
@@ -62,38 +58,9 @@ function generarUrlWhatsAppSeguimiento(cliente: ClienteSeguimiento): string | nu
   if (!telCompleto || telCompleto.length < 7) return null
 
   const nombre = cliente.nombre || 'Cliente'
-  const lineasDetalle: string[] = []
-
   const pendientes = cliente.boletas.filter(b => b.estado === 'RESERVADA' || b.estado === 'ABONADA')
-  if (pendientes.length > 0) {
-    const rifaMap = new Map<string, typeof pendientes>()
-    for (const b of pendientes) {
-      const list = rifaMap.get(b.rifa_nombre) ?? []
-      list.push(b)
-      rifaMap.set(b.rifa_nombre, list)
-    }
-    for (const [rifaNombre, boletas] of rifaMap.entries()) {
-      lineasDetalle.push(`🎟️ *${nombreProyecto(rifaNombre)}*`)
-      for (const b of boletas) {
-        lineasDetalle.push(lineaPachaPendiente({
-          estado: b.estado,
-          numeros: b.numeros,
-          numero: b.numero,
-          saldo: Number(b.saldo_pendiente),
-          abono: Number(b.abono_total),
-          precio: Number(b.precio_boleta),
-        }))
-      }
-      lineasDetalle.push('')
-    }
-  }
-
-  const totalDeuda = cliente.boletas.reduce((acc, b) => acc + Number(b.saldo_pendiente), 0)
-  const msg = mensajeRecordatorioPendiente({
-    nombre,
-    lineasDetalle,
-    deudaTotal: totalDeuda,
-  })
+  const pachas = pendientes.map(b => formatBoletaNumeros(b.numeros, b.numero))
+  const msg = mensajeRecordatorioPendiente({ nombre, pachas })
 
   return `https://wa.me/${telCompleto}?text=${encodeURIComponent(msg)}`
 }

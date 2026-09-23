@@ -76,28 +76,29 @@ function bloquePago(): string {
   return getMediosDePagoTexto()
 }
 
-/** Recordatorio genérico de saldo / pachas pendientes */
+/** Recordatorio amigable de pago antes del sorteo (módulo recordatorios y seguimiento) */
 export function mensajeRecordatorioPendiente(opts: {
   nombre: string
-  lineasDetalle: string[]
-  deudaTotal?: number
+  /** Cada ítem es un par/número formateado, ej. "#0010 · #4486" */
+  pachas: string[]
 }): string {
-  const nombre = opts.nombre || 'amigo/a'
-  let msg = `Hola ${nombre} 👋\n\n`
-  msg += `Te escribimos de *Sueños Dorados*. Queríamos recordarte que aún tienes pachas pendientes:\n\n`
+  const nombre = (opts.nombre || 'amigo/a').trim()
+  const pachas = opts.pachas.filter(Boolean)
 
-  if (opts.lineasDetalle.length) {
-    msg += opts.lineasDetalle.join('\n')
-    msg += `\n\n`
+  let msg = `👋 ¡Hola! ${nombre}\n\n`
+  msg += `Te recordamos que este sábado juega nuestra rifa de Sueños Dorados ✨\n\n`
+  msg += `La NMAX 2027 0 km\n`
+  msg += `Y el iPhone 17 Pro Max con el número invertido\n\n`
+
+  if (pachas.length === 1) {
+    msg += `${nombre}, tu boleta es ${pachas[0]}, recuerda cancelarla en su totalidad para que puedas participar en el sorteo. 🙌\n\n`
+  } else if (pachas.length > 1) {
+    msg += `${nombre}, tus boletas son ${pachas.join(' y ')}, recuerda cancelarlas en su totalidad para que puedas participar en el sorteo. 🙌\n\n`
+  } else {
+    msg += `${nombre}, recuerda cancelar tus boletas en su totalidad para que puedas participar en el sorteo. 🙌\n\n`
   }
 
-  if (opts.deudaTotal && opts.deudaTotal > 0) {
-    msg += `En total te quedan pendientes *${fmt(opts.deudaTotal)}*.\n\n`
-  }
-
-  msg += `${bloquePago()}\n\n`
-  msg += `Cuando puedas, envíanos el comprobante por aquí y te la dejamos al día 🙌\n\n`
-  msg += cierreConsulta()
+  msg += `¡No dejes pasar tu oportunidad! 🍀💛`
   return msg
 }
 
