@@ -15,6 +15,24 @@ interface RifaOption {
   id: string
   nombre: string
   precio_boleta: string | number
+  estado?: string
+}
+
+function rifasParaAsignarGanador(list: RifaOption[]): RifaOption[] {
+  const permitidas = list.filter((r) => {
+    const e = (r.estado || 'ACTIVA').toUpperCase()
+    return e === 'ACTIVA' || e === 'PAUSADA'
+  })
+  const orden = (estado: string) => (estado === 'ACTIVA' ? 0 : 1)
+  return permitidas.sort(
+    (a, b) =>
+      orden((a.estado || '').toUpperCase()) - orden((b.estado || '').toUpperCase()) ||
+      a.nombre.localeCompare(b.nombre, 'es')
+  )
+}
+
+function labelRifaGanador(r: RifaOption): string {
+  return (r.estado || '').toUpperCase() === 'PAUSADA' ? `${r.nombre} (Pausada)` : r.nombre
 }
 
 interface UsuarioOption {
@@ -90,10 +108,10 @@ export default function GanadorAsignarDirecto() {
     const load = async () => {
       try {
         const [rifasRes, usuariosRes] = await Promise.all([
-          apiRequest('/rifas/operativas?estado=ACTIVA'),
+          apiRequest('/rifas/operativas'),
           apiRequest('/ventas/ganadores/usuarios'),
         ])
-        const rifasList = rifasRes.data || []
+        const rifasList = rifasParaAsignarGanador(rifasRes.data || [])
         setRifas(rifasList)
         if (rifasList.length > 0) setRifaId(rifasList[0].id)
         const users = usuariosRes.data || []
@@ -277,7 +295,7 @@ export default function GanadorAsignarDirecto() {
               className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400"
             >
               {rifas.map((r) => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
+                <option key={r.id} value={r.id}>{labelRifaGanador(r)}</option>
               ))}
             </select>
           </div>
